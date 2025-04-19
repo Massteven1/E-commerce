@@ -17,8 +17,8 @@
     --light-gray: #f5f5f5;
     --medium-gray: #e0e0e0;
     --dark-gray: #666;
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    --transition: all 0.3s ease;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Box Shadow: color, x, y, blur */
+    --transition: all 0.3s ease; /* Transition: property, duration, timing function */
 }
 
 * {
@@ -28,7 +28,7 @@
 }
 
 body {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Poppins', sans-serif; /* TODO: Add the type of font on the root */
     color: var(--text-color);
     background-color: #fff;
     line-height: 1.6;

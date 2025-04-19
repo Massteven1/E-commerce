@@ -5,15 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>El Profesor Hernan</title>
     <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
+
 <body>
     <!-- Header Section -->
     <header>
         <div class="container">
             <div class="logo">
                 <div class="logo-circle">
-                    <img src="img/logo-profe-hernan.png" alt="Logo">
+                    <img src="img/logo-profe-hernan.png" alt="Logo"> <!-- TODO: Make the logo bigger and add a hover effect -->
                 </div>
             </div>
             <div class="search-bar">
@@ -22,12 +25,13 @@
             </div>
             <nav>
                 <ul>
+                    <!-- TODO: Add links to other pages -->
                     <li><a href="#">Courses</a></li>
                     <li><a href="#">Sales</a></li>
                     <li><a href="#">Contact</a></li>
                 </ul>
                 <div class="cart">
-                    <i class="fas fa-shopping-cart"></i>
+                    <i class="fas fa-shopping-cart"></i> <!-- TODO: Add a badge with the number of items in the cart -->
                 </div>
             </nav>
         </div>
@@ -56,29 +60,43 @@
     <section class="best-sellers">
         <div class="container">
             <h2>Best Sellers</h2>
+
+            <!-- Products Grid: Product Cards -->
             <div class="products-grid">
                 <div class="product-card"></div>
                 <div class="product-card"></div>
                 <div class="product-card"></div>
                 <div class="product-card"></div>
+                <div class="product-card"></div>
+                <div class="product-card"></div>
+                <div class="product-card"></div>
+                <div class="product-card"></div>
             </div>
+
+            <!-- Sort Options -->
             <div class="sort-options">
                 <span>Sort by:</span>
                 <button class="sort-btn active">New Arrivals</button>
                 <button class="sort-btn">Sales</button>
                 <button class="sort-btn">All Items</button>
             </div>
+
+            <!-- View More Button -->
+             <!-- TODO: Add a function to view more products -->
             <div class="view-more">
                 <a href="#">View All Products <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
     </section>
 
-    <!-- Courses Section -->
+    <!-- Courses Section: Course Packs -->
     <section class="courses">
         <div class="container">
             <h2>Courses</h2>
+
             <div class="courses-grid">
+                
+                <!-- A1 -->
                 <div class="course-card">
                     <div class="level-badge neon-glow orange">A1</div>
                     <div class="course-icon"><i class="fas fa-book"></i></div>
@@ -86,6 +104,8 @@
                     <p class="course-subtitle">Nivel Básico</p>
                     <p class="course-price">$55 <span class="original-price">$70</span> <span class="discount">-22%</span></p>
                 </div>
+                
+                <!-- A2 -->
                 <div class="course-card">
                     <div class="level-badge neon-glow red">A2</div>
                     <div class="course-icon"><i class="fas fa-comments"></i></div>
@@ -93,6 +113,8 @@
                     <p class="course-subtitle">Nivel Pre Intermedio</p>
                     <p class="course-price">$55</p>
                 </div>
+                
+                <!-- B1 -->
                 <div class="course-card">
                     <div class="level-badge neon-glow blue">B1</div>
                     <div class="course-icon"><i class="fas fa-pen"></i></div>
@@ -100,6 +122,8 @@
                     <p class="course-subtitle">Nivel Intermedio</p>
                     <p class="course-price">$55</p>
                 </div>
+                
+                <!-- B2 -->
                 <div class="course-card">
                     <div class="level-badge neon-glow teal">B2</div>
                     <div class="course-icon"><i class="fas fa-microphone"></i></div>
@@ -107,6 +131,8 @@
                     <p class="course-subtitle">Nivel Intermedio Alto</p>
                     <p class="course-price">$55</p>
                 </div>
+                
+                <!-- C1 -->
                 <div class="course-card">
                     <div class="level-badge neon-glow purple">C1</div>
                     <div class="course-icon"><i class="fas fa-graduation-cap"></i></div>
@@ -115,6 +141,9 @@
                     <p class="course-price">$55</p>
                 </div>
             </div>
+            
+            <!-- View More Button -->
+             <!-- TODO: Add a function to view more products -->
             <div class="view-more">
                 <a href="#">BROWSE ALL PRODUCTS <i class="fas fa-arrow-right"></i></a>
             </div>
@@ -148,6 +177,9 @@
                     <span>Avanzado</span>
                 </div>
             </div>
+
+            <!-- Shop Now Button -->
+             <!-- TODO: Add a function to shop now -->
             <a href="#" class="promo-link">SHOP NOW</a>
         </div>
     </section>
@@ -199,6 +231,7 @@
     </section>
 
     <!-- Back to Top Button -->
+     <!-- TODO: Smooth scroll to top -->
     <div class="back-to-top">
         <a href="#"><i class="fas fa-arrow-up"></i></a>
     </div>
