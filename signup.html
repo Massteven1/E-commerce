@@ -27,6 +27,7 @@
     <script type="module">
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js";
 
+        console.log("Firebase SDKs loaded and initialized.");
         const auth = getAuth();
         const signupForm = document.getElementById('signupForm');
         const errorMessageElement = document.getElementById('errorMessage');
@@ -35,6 +36,7 @@
             e.preventDefault();
             const email = signupForm['email'].value;
             const password = signupForm['password'].value;
+            console.log("Attempting to create user with email:", email);
 
             createUserWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
@@ -44,6 +46,7 @@
                     window.location.href = "index.html"; // Redirect to index.html
                 })
                 .catch((error) => {
+                    console.error("Error creating user:", error.message);
                     errorMessageElement.textContent = error.message;
                 });
         });
