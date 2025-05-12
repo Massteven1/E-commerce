@@ -2,3 +2,4 @@
 2. Arreglar el logout de outh.js
 3. actualziar css/section.txt
 4. Solucionar corregir las rutas de imagenes en los index.html
+5. Unificar los estilos en styles.css
