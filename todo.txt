@@ -1,0 +1,4 @@
+1. Arreglar el inicio de sesion con facebook
+2. Arreglar el logout de outh.js
+3. actualziar css/section.txt
+4. Solucionar corregir las rutas de imagenes en los index.html
