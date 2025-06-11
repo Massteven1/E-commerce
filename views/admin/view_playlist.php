@@ -25,7 +25,7 @@
 
     <div class="container">
         <?php if (isset($playlist['cover_image']) && !empty($playlist['cover_image'])): ?>
-            <img src="/E-commerce/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada de la lista" style="max-width: 300px; height: auto; margin-bottom: 20px;">
+            <img src="/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada de la lista" style="max-width: 300px; height: auto; margin-bottom: 20px;">
         <?php else: ?>
             <p>Sin imagen de portada</p>
         <?php endif; ?>
@@ -38,7 +38,7 @@
                 <?php foreach ($videos as $video): ?>
                     <li class="product-card">
                         <video width="320" height="240" controls>
-                            <source src="/E-commerce/<?php echo htmlspecialchars($video['file_path']); ?>" type="video/mp4">
+                            <source src="/<?php echo htmlspecialchars($video['file_path']); ?>" type="video/mp4">
                             Tu navegador no soporta el elemento de video.
                         </video>
                         <h3><?php echo htmlspecialchars($video['title']); ?></h3>

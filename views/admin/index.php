@@ -4,22 +4,7 @@
     <meta charset="UTF-8">
     <title>Panel de Administración</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-        .container { width: 80%; margin: 0 auto; padding: 20px; }
-        header { background: #333; color: white; padding: 10px 0; }
-        .logo { display: flex; align-items: center; }
-        .logo-circle { width: 40px; height: 40px; background: #007bff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; }
-        nav ul { list-style: none; display: flex; gap: 20px; }
-        nav a { color: white; text-decoration: none; }
-        .banner { background: #f4f4f4; padding: 20px 0; }
-        .checkout-section { margin: 20px 0; }
-        .form-row { display: flex; flex-direction: column; gap: 10px; }
-        input, textarea, select { padding: 10px; font-size: 16px; }
-        .btn-primary { background: #007bff; color: white; padding: 10px; border: none; cursor: pointer; }
-        .products-grid { list-style: none; padding: 0; display: grid; gap: 20px; }
-        .product-card { border: 1px solid #ddd; padding: 10px; }
-    </style>
+
 </head>
 <body>
     <header>
@@ -80,19 +65,31 @@
             <?php if (empty($playlists)): ?>
                 <p>No hay listas de reproducción creadas.</p>
             <?php else: ?>
-                <ul class="products-grid">
+                <div class="products-grid">
                     <?php foreach ($playlists as $playlist): ?>
-                        <li class="product-card">
-                            <a href="courses.php?controller=video&action=view_playlist&id=<?php echo $playlist['id']; ?>">
-                                <?php echo htmlspecialchars($playlist['name']); ?>
-                            </a>
-                            - <?php echo htmlspecialchars($playlist['description']); ?>
-                            <?php if (!empty($playlist['cover_image'])): ?>
-                                <br><img src="/E-commerce/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada" style="max-width: 100px;">
-                            <?php endif; ?>
-                        </li>
+                        <div class="product-card">
+                            <div class="product-tumb">
+                                <?php if (!empty($playlist['cover_image'])): ?>
+                                    <img src="/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
+                                <?php else: ?>
+                                    <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
+                                <?php endif; ?>
+                            </div>
+                            <div class="product-details">
+                                <span class="product-catagory">Playlist</span>
+                                <h4><a href="courses.php?controller=video&action=view_playlist&id=<?php echo $playlist['id']; ?>"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
+                                <p><?php echo htmlspecialchars($playlist['description'] ?: 'Sin descripción'); ?></p>
+                                <div class="product-bottom-details">
+                                    <div class="product-price"><small>$0.00</small>$0.00</div>
+                                    <div class="product-links">
+                                        <a href="#"><i class="fa fa-heart"></i></a>
+                                        <a href="courses.php?controller=video&action=view_playlist&id=<?php echo $playlist['id']; ?>"><i class="fa fa-eye"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
-                </ul>
+                </div>
             <?php endif; ?>
         </div>
     </div>

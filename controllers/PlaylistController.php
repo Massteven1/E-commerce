@@ -22,8 +22,8 @@ class PlaylistController {
             $this->playlistModel->description = $_POST['description'] ?? '';
 
             if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
-                // Usamos una ruta absoluta desde la raíz del proyecto
-                $target_dir = $_SERVER['DOCUMENT_ROOT'] . '/E-commerce/uploads/images/';
+                // Ruta absoluta explícita basada en tu directorio raíz
+                $target_dir = 'C:/Users/USUARIO/Documents/GitHub/E-commerce/uploads/images/';
                 $original_filename = basename($_FILES["cover_image"]["name"]);
                 $file_extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
 
@@ -41,7 +41,7 @@ class PlaylistController {
                 if (move_uploaded_file($_FILES["cover_image"]["tmp_name"], $target_file)) {
                     $this->playlistModel->cover_image = 'uploads/images/' . $unique_filename; // Ruta relativa para la base de datos
                 } else {
-                    die("Error al subir la imagen. Verifica permisos en uploads/images/.");
+                    die("Error al subir la imagen. Verifica permisos en $target_dir. Ruta tentativa: $target_file");
                 }
             } else {
                 $this->playlistModel->cover_image = null;

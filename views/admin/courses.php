@@ -34,7 +34,7 @@ switch ($controller) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- <link rel="stylesheet" href="../../public/css/courses.css"> -->
+<!--     <link rel="stylesheet" href="../../public/css/product.css"> -->
 
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
@@ -49,8 +49,17 @@ switch ($controller) {
         .form-row { display: flex; flex-direction: column; gap: 10px; }
         input, textarea, select { padding: 10px; font-size: 16px; }
         .btn-primary { background: #007bff; color: white; padding: 10px; border: none; cursor: pointer; }
-        .products-grid { list-style: none; padding: 0; display: grid; gap: 20px; }
+        .products-grid { list-style: none; padding: 0; display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
         .product-card { border: 1px solid #ddd; padding: 10px; }
+        .product-tumb img { max-width: 100%; height: auto; }
+        .product-details { padding: 10px 0; }
+        .product-catagory { color: #6c757d; font-size: 14px; }
+        .product-details h4 a { color: #333; text-decoration: none; }
+        .product-details p { font-size: 14px; color: #666; }
+        .product-bottom-details { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .product-price { font-weight: bold; }
+        .product-price small { color: #888; text-decoration: line-through; margin-right: 5px; }
+        .product-links a { color: #333; margin-left: 10px; text-decoration: none; }
     </style>
 </head>
 <body>

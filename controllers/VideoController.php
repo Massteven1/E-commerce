@@ -20,7 +20,8 @@ class VideoController {
             $this->videoModel->description = $_POST['description'] ?? '';
             $this->videoModel->playlist_id = $_POST['playlist_id'] ?? null;
 
-            $target_dir = "uploads/videos/";
+            // Ruta absoluta explícita basada en tu directorio raíz
+            $target_dir = 'C:/Users/USUARIO/Documents/GitHub/E-commerce/uploads/videos/';
             $original_filename = basename($_FILES["video"]["name"]);
             $file_extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
 
@@ -36,7 +37,7 @@ class VideoController {
             $target_file = $target_dir . $unique_filename;
 
             if (move_uploaded_file($_FILES["video"]["tmp_name"], $target_file)) {
-                $this->videoModel->file_path = $target_file;
+                $this->videoModel->file_path = 'uploads/videos/' . $unique_filename; // Ruta relativa para la base de datos
                 if ($this->videoModel->create()) {
                     header('Location: courses.php?controller=playlist&action=index');
                     exit();
@@ -45,7 +46,7 @@ class VideoController {
                     die("Error al guardar el video en la base de datos.");
                 }
             } else {
-                die("Error al subir el archivo. Verifica permisos en uploads/videos/.");
+                die("Error al subir el archivo. Verifica permisos en $target_dir. Ruta tentativa: $target_file");
             }
         }
     }
