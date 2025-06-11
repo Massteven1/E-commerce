@@ -23,17 +23,17 @@ class VideoController {
             $target_dir = "uploads/videos/";
             $original_filename = basename($_FILES["video"]["name"]);
             $file_extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
-            $unique_filename = time() . '_' . uniqid() . '.' . $file_extension;
-            $target_file = $target_dir . $unique_filename;
 
-            $allowed_types = ['mp4'];
-            if (!in_array($file_extension, $allowed_types)) {
+            if ($file_extension !== 'mp4') {
                 die("Solo se permiten archivos MP4.");
             }
 
             if (!file_exists($target_dir)) {
                 mkdir($target_dir, 0777, true);
             }
+
+            $unique_filename = time() . '_' . uniqid() . '.' . $file_extension;
+            $target_file = $target_dir . $unique_filename;
 
             if (move_uploaded_file($_FILES["video"]["tmp_name"], $target_file)) {
                 $this->videoModel->file_path = $target_file;
@@ -45,18 +45,16 @@ class VideoController {
                     die("Error al guardar el video en la base de datos.");
                 }
             } else {
-                die("Error al subir el archivo.");
+                die("Error al subir el archivo. Verifica permisos en uploads/videos/.");
             }
-        } else {
-            die("Método no permitido o archivo no enviado.");
         }
     }
 
     public function viewPlaylist($id) {
         $this->videoModel->playlist_id = $id;
-        $videos = $this->videoModel->readByPlaylist();
+        $videos = $this->videoModel->readByPlaylist($id);
         $this->playlistModel->id = $id;
-        $playlist = $this->playlistModel->readOne();
+        $playlist = $this->playlistModel->readOne($id);
         require_once __DIR__ . '/../views/admin/view_playlist.php';
     }
 }

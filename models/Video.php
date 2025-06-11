@@ -20,17 +20,13 @@ class Video {
         $stmt->bindParam(':description', $this->description);
         $stmt->bindParam(':file_path', $this->file_path);
         $stmt->bindParam(':playlist_id', $this->playlist_id);
-        try {
-            return $stmt->execute();
-        } catch (PDOException $e) {
-            die("Excepción PDO: " . $e->getMessage());
-        }
+        return $stmt->execute();
     }
 
-    public function readByPlaylist() {
+    public function readByPlaylist($playlist_id) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE playlist_id = :playlist_id ORDER BY created_at DESC";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':playlist_id', $this->playlist_id);
+        $stmt->bindParam(':playlist_id', $playlist_id);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

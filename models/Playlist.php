@@ -6,26 +6,19 @@ class Playlist {
     public $id;
     public $name;
     public $description;
+    public $cover_image;
 
     public function __construct($db) {
         $this->conn = $db;
     }
 
     public function create() {
-        $query = "INSERT INTO " . $this->table_name . " (name, description) VALUES (:name, :description)";
+        $query = "INSERT INTO " . $this->table_name . " (name, description, cover_image) VALUES (:name, :description, :cover_image)";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':name', $this->name);
         $stmt->bindParam(':description', $this->description);
-        try {
-            $result = $stmt->execute();
-            if (!$result) {
-                $errorInfo = $this->conn->errorInfo();
-                die("Error en la consulta: " . $errorInfo[2]);
-            }
-            return $result;
-        } catch (PDOException $e) {
-            die("Excepción PDO: " . $e->getMessage());
-        }
+        $stmt->bindParam(':cover_image', $this->cover_image);
+        return $stmt->execute();
     }
 
     public function readAll() {
@@ -35,10 +28,10 @@ class Playlist {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function readOne() {
+    public function readOne($id) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 1";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id', $this->id);
+        $stmt->bindParam(':id', $id);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }

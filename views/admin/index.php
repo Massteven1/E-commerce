@@ -3,20 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <title>Panel de Administración</title>
-    <link rel="stylesheet" href="../public/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .container { width: 80%; margin: 0 auto; padding: 20px; }
+        header { background: #333; color: white; padding: 10px 0; }
+        .logo { display: flex; align-items: center; }
+        .logo-circle { width: 40px; height: 40px; background: #007bff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; }
+        nav ul { list-style: none; display: flex; gap: 20px; }
+        nav a { color: white; text-decoration: none; }
+        .banner { background: #f4f4f4; padding: 20px 0; }
+        .checkout-section { margin: 20px 0; }
+        .form-row { display: flex; flex-direction: column; gap: 10px; }
+        input, textarea, select { padding: 10px; font-size: 16px; }
+        .btn-primary { background: #007bff; color: white; padding: 10px; border: none; cursor: pointer; }
+        .products-grid { list-style: none; padding: 0; display: grid; gap: 20px; }
+        .product-card { border: 1px solid #ddd; padding: 10px; }
+    </style>
 </head>
 <body>
-    <!-- Header -->
     <header>
         <div class="container">
             <div class="logo">
-                <div class="logo-circle" style="background-color: var(--primary-color);">V</div>
+                <div class="logo-circle">V</div>
                 <span style="margin-left: 10px; font-weight: 600;">Video Admin</span>
-            </div>
-            <div class="search-bar">
-                <input type="text" placeholder="Buscar listas o videos...">
-                <i class="fas fa-search"></i>
             </div>
             <nav>
                 <ul>
@@ -28,24 +38,21 @@
         </div>
     </header>
 
-    <!-- Banner -->
     <div class="banner">
         <div class="container">
-            <div class="banner-content">
-                <h1>Panel de Administración</h1>
-                <p>Gestiona tus listas de reproducción y videos.</p>
-            </div>
+            <h1>Panel de Administración</h1>
+            <p>Gestiona tus listas de reproducción y videos.</p>
         </div>
     </div>
 
-    <!-- Contenido del Panel -->
     <div class="container">
         <!-- Crear Lista de Reproducción -->
         <div class="checkout-section">
             <h2>Crear Lista de Reproducción</h2>
-            <form action="courses.php?controller=playlist&action=create" method="post" class="form-row">
+            <form action="courses.php?controller=playlist&action=create" method="post" enctype="multipart/form-data" class="form-row">
                 <input type="text" name="name" placeholder="Nombre de la lista" required>
                 <textarea name="description" placeholder="Descripción"></textarea>
+                <input type="file" name="cover_image" accept="image/jpeg" required>
                 <button type="submit" class="btn-primary">Crear Lista</button>
             </form>
         </div>
@@ -80,6 +87,9 @@
                                 <?php echo htmlspecialchars($playlist['name']); ?>
                             </a>
                             - <?php echo htmlspecialchars($playlist['description']); ?>
+                            <?php if (!empty($playlist['cover_image'])): ?>
+                                <br><img src="/E-commerce/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada" style="max-width: 100px;">
+                            <?php endif; ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>
@@ -87,7 +97,6 @@
         </div>
     </div>
 
-    <!-- Back to Top Button -->
     <div class="back-to-top">
         <a href="#"><i class="fas fa-arrow-up"></i></a>
     </div>
