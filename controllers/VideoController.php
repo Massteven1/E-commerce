@@ -23,7 +23,7 @@ class VideoController {
             $target_dir = "uploads/videos/";
             $original_filename = basename($_FILES["video"]["name"]);
             $file_extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
-            $unique_filename = time() . '_' . uniqid() . '.' . $file_extension; // Nombre único
+            $unique_filename = time() . '_' . uniqid() . '.' . $file_extension;
             $target_file = $target_dir . $unique_filename;
 
             $allowed_types = ['mp4'];
@@ -31,19 +31,17 @@ class VideoController {
                 die("Solo se permiten archivos MP4.");
             }
 
-            // Verificar si el directorio existe, si no, crearlo
             if (!file_exists($target_dir)) {
                 mkdir($target_dir, 0777, true);
             }
 
-            // Mover el archivo al directorio de uploads con nombre único
             if (move_uploaded_file($_FILES["video"]["tmp_name"], $target_file)) {
                 $this->videoModel->file_path = $target_file;
                 if ($this->videoModel->create()) {
-                    header('Location: index.php?controller=playlist&action=index');
+                    header('Location: courses.php?controller=playlist&action=index');
                     exit();
                 } else {
-                    unlink($target_file); // Eliminar el archivo si falla la inserción en la base de datos
+                    unlink($target_file);
                     die("Error al guardar el video en la base de datos.");
                 }
             } else {

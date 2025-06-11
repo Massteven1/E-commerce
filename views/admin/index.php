@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Panel de Administración</title>
-    <link rel="stylesheet" href="/E-commerce/public/css/styles.css">
+    <link rel="stylesheet" href="../public/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
@@ -20,7 +20,7 @@
             </div>
             <nav>
                 <ul>
-                    <li><a href="index.php?controller=playlist&action=index">Inicio</a></li>
+                    <li><a href="courses.php?controller=playlist&action=index">Inicio</a></li>
                     <li><a href="#">Configuración</a></li>
                     <li class="logout"><i class="fas fa-sign-out-alt"></i></li>
                 </ul>
@@ -43,7 +43,7 @@
         <!-- Crear Lista de Reproducción -->
         <div class="checkout-section">
             <h2>Crear Lista de Reproducción</h2>
-            <form action="index.php?controller=playlist&action=create" method="post" class="form-row">
+            <form action="courses.php?controller=playlist&action=create" method="post" class="form-row">
                 <input type="text" name="name" placeholder="Nombre de la lista" required>
                 <textarea name="description" placeholder="Descripción"></textarea>
                 <button type="submit" class="btn-primary">Crear Lista</button>
@@ -53,7 +53,7 @@
         <!-- Subir Video y Asignar a Lista -->
         <div class="checkout-section">
             <h2>Subir Video</h2>
-            <form action="index.php?controller=video&action=upload" method="post" enctype="multipart/form-data" class="form-row">
+            <form action="courses.php?controller=video&action=upload" method="post" enctype="multipart/form-data" class="form-row">
                 <input type="file" name="video" accept="video/mp4" required>
                 <input type="text" name="title" placeholder="Título del Video" required>
                 <textarea name="description" placeholder="Descripción"></textarea>
@@ -76,7 +76,7 @@
                 <ul class="products-grid">
                     <?php foreach ($playlists as $playlist): ?>
                         <li class="product-card">
-                            <a href="index.php?controller=video&action=view_playlist&id=<?php echo $playlist['id']; ?>">
+                            <a href="courses.php?controller=video&action=view_playlist&id=<?php echo $playlist['id']; ?>">
                                 <?php echo htmlspecialchars($playlist['name']); ?>
                             </a>
                             - <?php echo htmlspecialchars($playlist['description']); ?>

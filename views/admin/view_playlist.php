@@ -15,7 +15,7 @@
             </div>
             <nav>
                 <ul>
-                    <li><a href="index.php?controller=playlist&action=index">Inicio</a></li>
+                    <li><a href="courses.php?controller=playlist&action=index">Inicio</a></li>
                     <li><a href="#">Configuración</a></li>
                     <li class="logout"><i class="fas fa-sign-out-alt"></i></li>
                 </ul>
@@ -47,7 +47,7 @@
     </div>
 
     <div class="back-to-top">
-        <a href="index.php?controller=playlist&action=index"><i class="fas fa-arrow-up"></i></a>
+        <a href="courses.php?controller=playlist&action=index"><i class="fas fa-arrow-up"></i></a>
     </div>
 </body>
 </html>

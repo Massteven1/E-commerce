@@ -18,14 +18,10 @@ class PlaylistController {
 
     public function create() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Depuración: Verificar datos recibidos
-            if (!isset($_POST['name']) || empty($_POST['name'])) {
-                die("Error: El campo 'name' es obligatorio.");
-            }
             $this->playlistModel->name = $_POST['name'];
             $this->playlistModel->description = $_POST['description'] ?? '';
             if ($this->playlistModel->create()) {
-                header('Location: index.php?controller=playlist&action=index');
+                header('Location: courses.php?controller=playlist&action=index');
                 exit();
             } else {
                 die("Error al crear la lista. Verifica la base de datos o los datos ingresados.");
