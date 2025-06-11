@@ -1,0 +1,7 @@
+Estilos Generales (index.html): Línea 1
+    todo: line 33
+
+Estilos de Checkout (checkout.html): Línea 744
+    fixme: line 908
+
+Estilos de Carrito (cart.html): Línea 1177
