@@ -34,5 +34,13 @@ class Playlist {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function readOne() {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $this->id);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }
 ?>
