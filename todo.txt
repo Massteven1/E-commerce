@@ -3,3 +3,5 @@
 3. actualziar css/section.txt
 4. Solucionar corregir las rutas de imagenes en los index.html
 5. Unificar los estilos en styles.css
+6. actualziar el estilo de las vistas de administrador.
+7 Solucionar el problema de reproducción de video es en vistas/admin/index.php
