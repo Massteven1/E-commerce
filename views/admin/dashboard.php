@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración</title>
+    <!-- Enlace al nuevo archivo de estilos de administrador -->
     <link rel="stylesheet" href="../../public/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
@@ -11,7 +12,7 @@
 
     <header>
         <div class="container">
-            <a href="#" class="logo">
+            <a href="courses.php?controller=admin&action=dashboard" class="logo">
                 <div class="logo-circle" style="background-color: var(--primary-color);">
                     <i class="fas fa-chart-line"></i>
                 </div>
@@ -23,9 +24,9 @@
             </div>
             <nav>
                 <ul>
-                    <li><a href="#">Dashboard</a></li>
+                    <li><a href="courses.php?controller=admin&action=dashboard">Dashboard</a></li>
                     <li><a href="#">Users</a></li>
-                    <li><a href="courseManagment.php">Courses</a></li>
+                    <li><a href="courses.php?controller=playlist&action=index">Courses</a></li>
                     <li><a href="#">Reports</a></li>
                 </ul>
                 <a href="#" class="logout">
@@ -34,6 +35,13 @@
             </nav>
         </div>
     </header>
+
+    <div class="banner">
+        <div class="container">
+            <h1>Panel de Administración</h1>
+            <p>Bienvenido al centro de control de tu plataforma.</p>
+        </div>
+    </div>
 
     <section class="dashboard">
         <div class="container">
@@ -75,25 +83,26 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td>#1024</td>
-                                <td>Juan Pérez</td>
-                                <td>2024-01-20</td>
-                                <td>Enviado</td>
-                                <td>$55.00</td>
-                            </tr>
-                            <tr>
-                                <td>#1023</td>
-                                <td>María Gómez</td>
-                                <td>2024-01-18</td>
-                                <td>Entregado</td>
-                                <td>$120.00</td>
-                            </tr>
-                            <tr>
                                 <td>#1022</td>
                                 <td>Carlos López</td>
                                 <td>2024-01-15</td>
                                 <td>Procesando</td>
                                 <td>$80.00</td>
+                            </tr>
+                            <!-- Más filas de ejemplo -->
+                            <tr>
+                                <td>#1023</td>
+                                <td>Ana García</td>
+                                <td>2024-01-14</td>
+                                <td>Completado</td>
+                                <td>$120.00</td>
+                            </tr>
+                            <tr>
+                                <td>#1024</td>
+                                <td>Juan Pérez</td>
+                                <td>2024-01-13</td>
+                                <td>Pendiente</td>
+                                <td>$50.00</td>
                             </tr>
                         </tbody>
                     </table>
@@ -111,9 +120,7 @@
     </section>
 
     <footer>
-        <div class="container">
-            <p>&copy; 2024 Panel de Administración</p>
-        </div>
+        <!-- Puedes añadir un pie de página aquí si lo deseas -->
     </footer>
 
     <a href="#" class="back-to-top">
