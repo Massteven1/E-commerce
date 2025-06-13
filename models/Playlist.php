@@ -7,17 +7,29 @@ class Playlist {
     public $name;
     public $description;
     public $cover_image;
+    public $price; // Nuevo: Propiedad para el precio
+    public $created_at;
 
     public function __construct($db) {
         $this->conn = $db;
     }
 
     public function create() {
-        $query = "INSERT INTO " . $this->table_name . " (name, description, cover_image) VALUES (:name, :description, :cover_image)";
+        $query = "INSERT INTO " . $this->table_name . " (name, description, cover_image, price) VALUES (:name, :description, :cover_image, :price)";
         $stmt = $this->conn->prepare($query);
+
+        // Limpiar datos
+        $this->name = htmlspecialchars(strip_tags($this->name));
+        $this->description = htmlspecialchars(strip_tags($this->description));
+        $this->cover_image = htmlspecialchars(strip_tags($this->cover_image));
+        $this->price = htmlspecialchars(strip_tags($this->price)); // Limpiar el precio
+
+        // Vincular parámetros
         $stmt->bindParam(':name', $this->name);
         $stmt->bindParam(':description', $this->description);
         $stmt->bindParam(':cover_image', $this->cover_image);
+        $stmt->bindParam(':price', $this->price); // Vincular el precio
+
         return $stmt->execute();
     }
 
@@ -34,6 +46,28 @@ class Playlist {
         $stmt->bindParam(':id', $id);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Nuevo método para actualizar una lista de reproducción
+    public function update() {
+        $query = "UPDATE " . $this->table_name . " SET name = :name, description = :description, cover_image = :cover_image, price = :price WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+
+        // Limpiar datos
+        $this->name = htmlspecialchars(strip_tags($this->name));
+        $this->description = htmlspecialchars(strip_tags($this->description));
+        $this->cover_image = htmlspecialchars(strip_tags($this->cover_image));
+        $this->price = htmlspecialchars(strip_tags($this->price));
+        $this->id = htmlspecialchars(strip_tags($this->id));
+
+        // Vincular parámetros
+        $stmt->bindParam(':name', $this->name);
+        $stmt->bindParam(':description', $this->description);
+        $stmt->bindParam(':cover_image', $this->cover_image);
+        $stmt->bindParam(':price', $this->price);
+        $stmt->bindParam(':id', $this->id);
+
+        return $stmt->execute();
     }
 }
 ?>

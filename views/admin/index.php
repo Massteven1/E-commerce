@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Gestión de Cursos</title>
-    <!-- Enlace al nuevo archivo de estilos de administrador -->
     <link rel="stylesheet" href="../../public/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -40,6 +39,7 @@
                 <form action="courses.php?controller=playlist&action=create" method="post" enctype="multipart/form-data" class="form-row">
                     <input type="text" name="name" placeholder="Nombre de la lista" required>
                     <textarea name="description" placeholder="Descripción"></textarea>
+                    <input type="number" name="price" placeholder="Precio del curso" step="0.01" min="0" required> <!-- Nuevo campo de precio -->
                     <input type="file" name="cover_image" accept="image/jpeg" required>
                     <button type="submit" class="btn-primary">Crear Lista</button>
                 </form>
@@ -76,10 +76,9 @@
                         <div class="product-card">
                             <div class="product-tumb">
                                 <?php if (!empty($playlist['cover_image'])): ?>
-                                    <!-- La ruta de la imagen debe ser relativa a la raíz del servidor web -->
                                     <img src="/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
                                 <?php else: ?>
-                                    <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
+                                    <img src="https://ih1.redbubble.net/image.4905811447.8675/flat,750x,075,f-pad,750x1000,f8f8f8.jpg" alt="Imagen por defecto">
                                 <?php endif; ?>
                             </div>
                             <div class="product-details">
@@ -87,10 +86,10 @@
                                 <h4><a href="courses.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
                                 <p><?php echo htmlspecialchars($playlist['description'] ?: 'Sin descripción'); ?></p>
                                 <div class="product-bottom-details">
-                                    <div class="product-price"><small>$0.00</small>$0.00</div>
+                                    <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?></div> <!-- Muestra el precio -->
                                     <div class="product-links">
-                                        <a href="#"><i class="fa fa-heart"></i></a>
-                                        <a href="courses.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($playlist['id']); ?>"><i class="fa fa-eye"></i></a>
+                                        <a href="courses.php?controller=playlist&action=edit&id=<?php echo htmlspecialchars($playlist['id']); ?>" title="Editar"><i class="fa fa-edit"></i></a> <!-- Botón de editar -->
+                                        <a href="courses.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($playlist['id']); ?>" title="Ver Videos"><i class="fa fa-eye"></i></a>
                                     </div>
                                 </div>
                             </div>

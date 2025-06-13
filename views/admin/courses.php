@@ -1,25 +1,19 @@
 <?php
-// Asegúrate de que la sesión esté iniciada si planeas usarla para el logout
-// if (session_status() == PHP_SESSION_NONE) {
-//     session_start();
-// }
-
 require_once __DIR__ . '/../../controllers/PlaylistController.php';
 require_once __DIR__ . '/../../controllers/VideoController.php';
-require_once __DIR__ . '/../../controllers/AdminController.php'; // Nuevo: Incluye el AdminController
+require_once __DIR__ . '/../../controllers/AdminController.php';
 
-$controller = isset($_GET['controller']) ? $_GET['controller'] : 'admin'; // Cambiado: 'admin' es el controlador por defecto
-$action = isset($_GET['action']) ? $_GET['action'] : 'dashboard'; // Cambiado: 'dashboard' es la acción por defecto
+$controller = isset($_GET['controller']) ? $_GET['controller'] : 'admin';
+$action = isset($_GET['action']) ? $_GET['action'] : 'dashboard';
 
 $id = isset($_GET['id']) ? $_GET['id'] : null;
 
 switch ($controller) {
-    case 'admin': // Nuevo caso para el controlador de administración
+    case 'admin':
         $adminController = new AdminController();
         if ($action === 'dashboard') {
             $adminController->dashboard();
         } else {
-            // Si la acción no es 'dashboard', redirige al dashboard por defecto
             header('Location: courses.php?controller=admin&action=dashboard');
             exit();
         }
@@ -28,8 +22,12 @@ switch ($controller) {
         $playlistController = new PlaylistController();
         if ($action === 'create') {
             $playlistController->create();
+        } elseif ($action === 'edit' && $id) {
+            $playlistController->edit($id);
+        } elseif ($action === 'update') {
+            $playlistController->update();
         } else {
-            $playlistController->index(); // Esto incluirá views/admin/index.php
+            $playlistController->index();
         }
         break;
     case 'video':
@@ -37,11 +35,12 @@ switch ($controller) {
         if ($action === 'upload') {
             $videoController->upload();
         } elseif ($action === 'view_playlist') {
-            $videoController->viewPlaylist($id); // Esto incluirá views/admin/view_playlist.php
+            $videoController->viewPlaylist($id);
+        } elseif ($action === 'view_video') { // Nueva acción para ver un video individual
+            $videoController->viewVideo($id);
         }
         break;
     default:
-        // Redirige al dashboard si el controlador no es válido
         header('Location: courses.php?controller=admin&action=dashboard');
         exit();
 }

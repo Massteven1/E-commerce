@@ -8,6 +8,7 @@ class Video {
     public $description;
     public $file_path;
     public $playlist_id;
+    public $created_at;
 
     public function __construct($db) {
         $this->conn = $db;
@@ -23,12 +24,31 @@ class Video {
         return $stmt->execute();
     }
 
-    public function readByPlaylist($playlist_id) {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE playlist_id = :playlist_id ORDER BY created_at DESC";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':playlist_id', $playlist_id);
+    public function readByPlaylist($playlist_id, $exclude_id = null) {
+        if ($exclude_id) {
+            // Si se proporciona un ID para excluir, lo excluimos de los resultados
+            $query = "SELECT * FROM " . $this->table_name . " WHERE playlist_id = :playlist_id AND id != :exclude_id ORDER BY created_at DESC";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':playlist_id', $playlist_id);
+            $stmt->bindParam(':exclude_id', $exclude_id);
+        } else {
+            // Consulta original sin exclusión
+            $query = "SELECT * FROM " . $this->table_name . " WHERE playlist_id = :playlist_id ORDER BY created_at DESC";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':playlist_id', $playlist_id);
+        }
+        
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Nuevo método para leer un video específico
+    public function readOne($id) {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
 ?>

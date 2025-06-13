@@ -3,9 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <title><?php echo isset($playlist['name']) ? htmlspecialchars($playlist['name']) : 'Playlist'; ?></title>
-    <!-- Enlace al nuevo archivo de estilos de administrador -->
     <link rel="stylesheet" href="../../public/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .video-thumbnail {
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+        .video-thumbnail img {
+            width: 100%;
+            height: auto;
+            transition: transform 0.3s ease;
+        }
+        .video-thumbnail:hover img {
+            transform: scale(1.05);
+        }
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background-color: rgba(138, 86, 226, 0.8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .play-button i {
+            color: white;
+            font-size: 24px;
+            margin-left: 4px; /* Ajuste para centrar visualmente el ícono de play */
+        }
+        .video-thumbnail:hover .play-button {
+            background-color: var(--primary-color);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        .video-duration {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .video-title {
+            font-weight: 600;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        .video-description {
+            color: var(--dark-gray);
+            font-size: 0.9em;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -31,13 +93,13 @@
                 <i class="fas fa-arrow-left"></i> Volver a Listas
             </a>
             <?php if (isset($playlist['cover_image']) && !empty($playlist['cover_image'])): ?>
-                <!-- La ruta de la imagen debe ser relativa a la raíz del servidor web -->
                 <img src="/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada de la lista" style="max-width: 300px; height: auto; margin: 0 auto 20px; display: block; border-radius: 10px; box-shadow: var(--shadow);">
             <?php else: ?>
                 <p style="text-align: center; color: var(--dark-gray);">Sin imagen de portada</p>
             <?php endif; ?>
             <h1 style="margin-top: 20px; text-align: center;"><?php echo isset($playlist['name']) ? htmlspecialchars($playlist['name']) : 'Playlist no encontrada'; ?></h1>
-            <p style="text-align: center; color: var(--dark-gray;"><?php echo isset($playlist['description']) ? htmlspecialchars($playlist['description']) : 'Sin descripción'; ?></p>
+            <p style="text-align: center; color: var(--dark-gray);"><?php echo isset($playlist['description']) ? htmlspecialchars($playlist['description']) : 'Sin descripción'; ?></p>
+            <p style="text-align: center; color: var(--primary-color); font-weight: 600; font-size: 1.2rem;">Precio: $<?php echo isset($playlist['price']) ? htmlspecialchars(number_format($playlist['price'], 2)) : 'N/A'; ?></p>
         </div>
 
         <?php if (!empty($videos)): ?>
@@ -46,16 +108,18 @@
                 <ul class="products-grid">
                     <?php foreach ($videos as $video): ?>
                         <li class="product-card">
-                            <div class="product-tumb" style="height: auto;">
-                                <!-- La ruta del video debe ser relativa a la raíz del servidor web -->
-                                <video width="100%" controls style="border-radius: 8px;">
-                                    <source src="/<?php echo htmlspecialchars($video['file_path']); ?>" type="video/mp4">
-                                    {"Tu navegador no soporta el elemento de video."}
-                                </video>
-                            </div>
+                            <!-- Reemplazamos el reproductor de video por una miniatura con botón de play -->
+                            <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($video['id']); ?>" class="video-thumbnail">
+                                <!-- Usamos la primera imagen del video como miniatura (esto es simulado) -->
+                                <img src="https://i.imgur.com/xdbHo4E.png" alt="<?php echo htmlspecialchars($video['title']); ?>">
+                                <div class="play-button">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                                <div class="video-duration">3:45</div> <!-- Duración simulada -->
+                            </a>
                             <div class="product-details">
-                                <h4><?php echo htmlspecialchars($video['title']); ?></h4>
-                                <p><?php echo htmlspecialchars($video['description']); ?></p>
+                                <h4 class="video-title"><?php echo htmlspecialchars($video['title']); ?></h4>
+                                <p class="video-description"><?php echo htmlspecialchars($video['description']); ?></p>
                             </div>
                         </li>
                     <?php endforeach; ?>
