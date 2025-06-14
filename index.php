@@ -1,3 +1,16 @@
+<?php
+// Incluir las clases necesarias para la base de datos y el modelo de Playlist
+require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/models/Playlist.php';
+
+// Inicializar la conexión a la base de datos y el modelo de Playlist
+$database = new Database();
+$db = $database->getConnection();
+$playlistModel = new Playlist($db);
+
+// Obtener todas las listas de reproducción
+$playlists = $playlistModel->readAll();
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -20,7 +33,7 @@
         <div class="container">
             <div class="logo">
                 <div class="logo-circle">
-                    <img src="img/logo-profe-hernan.png" alt="Logo"> <!-- TODO: Make the logo bigger and add a hover effect -->
+                    <img src="public/img/logo-profe-hernan.png" alt="Logo"> <!-- TODO: Make the logo bigger and add a hover effect -->
                 </div>
             </div>
             <div class="search-bar"> <!-- FIXME: serach bar responsive -->
@@ -58,7 +71,7 @@
             </div>
             <div class="banner-image">
                 <div class="image-container">
-                    <img src="img/hero-image.png?height=300&width=300" alt="Person teaching">
+                    <img src="public/img/hero-image.png?height=300&width=300" alt="Person teaching">
                 </div>
             </div>
         </div>
@@ -67,32 +80,54 @@
     <!-- Best Sellers Section -->
     <section class="best-sellers">
         <div class="container">
-            <h2>Best Sellers</h2>
+            <h2>Nuestras Listas de Reproducción</h2>
 
-            <!-- Products Grid: Product Cards -->
+            <!-- Products Grid: Product Cards (Ahora dinámico con playlists) -->
             <div class="products-grid">
-                <div class="product-card"></div>
-                <div class="product-card"></div>
-                <div class="product-card"></div>
-                <div class="product-card"></div>
-                <div class="product-card"></div>
-                <div class="product-card"></div>
-                <div class="product-card"></div>
-                <div class="product-card"></div>
+                <?php if (!empty($playlists)): ?>
+                    <?php foreach ($playlists as $playlist): ?>
+                        <div class="product-card">
+                            <div class="product-tumb">
+                                <?php if (!empty($playlist['cover_image'])): ?>
+                                    <!-- La ruta de la imagen es relativa a la raíz del proyecto -->
+                                    <img src="<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
+                                <?php else: ?>
+                                    <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
+                                <?php endif; ?>
+                            </div>
+                            <div class="product-details">
+                                <span class="product-catagory">Lista de Reproducción</span>
+                                <!-- El título no es un enlace para evitar el acceso directo a los videos -->
+                                <h4><?php echo htmlspecialchars($playlist['name']); ?></h4>
+                                <p><?php echo htmlspecialchars($playlist['description'] ?: 'Sin descripción'); ?></p>
+                                <div class="product-bottom-details">
+                                    <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?></div>
+                                    <!-- No se muestran enlaces de edición/eliminación aquí -->
+                                    <div class="product-links">
+                                        <!-- Puedes añadir un botón de "Ver detalles" o "Añadir al carrito" aquí si lo deseas, sin que lleve a los videos directamente -->
+                                        <a href="#" class="btn-primary" style="padding: 8px 15px; font-size: 0.9em;">Ver Detalles</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p style="text-align: center; color: var(--dark-gray); grid-column: 1 / -1;">No hay listas de reproducción disponibles en este momento.</p>
+                <?php endif; ?>
             </div>
 
             <!-- Sort Options -->
             <div class="sort-options">
-                <span>Sort by:</span>
-                <button class="sort-btn active">New Arrivals</button>
-                <button class="sort-btn">Sales</button>
-                <button class="sort-btn">All Items</button>
+                <span>Ordenar por:</span>
+                <button class="sort-btn active">Novedades</button>
+                <button class="sort-btn">Ofertas</button>
+                <button class="sort-btn">Todos los artículos</button>
             </div>
 
             <!-- View More Button -->
              <!-- TODO: Add a function to view more products -->
             <div class="view-more">
-                <a href="#">View All Products <i class="fas fa-arrow-right"></i></a>
+                <a href="#">Ver Todos los Productos <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
     </section>
@@ -100,7 +135,7 @@
     <!-- Courses Section: Course Packs -->
     <section class="courses">
         <div class="container">
-            <h2>Courses</h2>
+            <h2>Cursos por Nivel</h2>
 
             <div class="courses-grid">
                 
@@ -153,7 +188,7 @@
             <!-- View More Button -->
              <!-- TODO: Add a function to view more products -->
             <div class="view-more">
-                <a href="#">BROWSE ALL PRODUCTS <i class="fas fa-arrow-right"></i></a>
+                <a href="#">EXPLORAR TODOS LOS PRODUCTOS <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
     </section>
@@ -161,8 +196,8 @@
     <!-- Promo Box Section -->
     <section class="promo-box">
         <div class="container">
-            <p class="promo-label">OFFER</p>
-            <h2 class="promo-title">30% OFF</h2>
+            <p class="promo-label">OFERTA</p>
+            <h2 class="promo-title">30% DE DESCUENTO</h2>
             <div class="promo-levels">
                 <div class="promo-level orange">
                     <div class="level-badge neon-glow">A1</div>
@@ -188,7 +223,7 @@
 
             <!-- Shop Now Button -->
              <!-- TODO: Add a function to shop now -->
-            <a href="#" class="promo-link">SHOP NOW</a>
+            <a href="#" class="promo-link">COMPRAR AHORA</a>
         </div>
     </section>
 
@@ -196,21 +231,21 @@
     <section class="contact">
         <div class="container">
             <div class="contact-form">
-                <h2>SEND YOUR QUERY</h2>
+                <h2>ENVÍA TU CONSULTA</h2>
                 <form>
                     <div class="form-group">
-                        <label for="name">Your name</label>
-                        <input type="text" id="name" placeholder="Name">
+                        <label for="name">Tu nombre</label>
+                        <input type="text" id="name" placeholder="Nombre">
                     </div>
                     <div class="form-group">
-                        <label for="email">Your email</label>
-                        <input type="email" id="email" placeholder="E-mail">
+                        <label for="email">Tu correo electrónico</label>
+                        <input type="email" id="email" placeholder="Correo electrónico">
                     </div>
                     <div class="form-group">
-                        <label for="message">Your message</label>
-                        <textarea id="message" placeholder="Message"></textarea>
+                        <label for="message">Tu mensaje</label>
+                        <textarea id="message" placeholder="Mensaje"></textarea>
                     </div>
-                    <button type="submit" class="btn-primary">Send</button>
+                    <button type="submit" class="btn-primary">Enviar</button>
                 </form>
             </div>
             <div class="contact-info">
@@ -219,7 +254,7 @@
                         <i class="fas fa-envelope"></i>
                     </div>
                     <div class="text">
-                        <h3>EMAIL</h3>
+                        <h3>CORREO ELECTRÓNICO</h3>
                         <p>info@professionalcomunidad.com</p>
                     </div>
                 </div>
@@ -228,7 +263,7 @@
                         <i class="fas fa-phone"></i>
                     </div>
                     <div class="text">
-                        <h3>CALL</h3>
+                        <h3>LLAMAR</h3>
                         <p>+57 123 456 789</p>
                         <p>+57 234 567 890</p>
                         <p>+57 345 678 901</p>
