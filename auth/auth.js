@@ -1,92 +1,42 @@
-// Import Firebase (adjust the path if necessary)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.2.0/firebase-app.js"
-import {
-  getAuth,
-  GoogleAuthProvider,
-  FacebookAuthProvider,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
-  sendEmailVerification,
-  signInWithPopup,
-  signOut,
-  sendPasswordResetEmail,
-  setPersistence,
-  browserSessionPersistence,
-  browserLocalPersistence,
-  onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/9.2.0/firebase-auth.js"
+// Variables globales (se inicializan en firebase-config.js)
+let auth, googleProvider
 
-// Firebase configuration (replace with your actual configuration)
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+// Esperar a que Firebase esté listo
+document.addEventListener("DOMContentLoaded", () => {
+  // Obtener las instancias globales
+  auth = window.auth
+  googleProvider = window.googleProvider
+
+  if (!auth || !googleProvider) {
+    console.error("Firebase no está inicializado correctamente")
+    return
+  }
+
+  console.log("Auth.js cargado correctamente")
+
+  // Configurar eventos
+  setupAuthEvents()
+  setupAuthStateListener()
+})
+
+// Función para mostrar/ocultar loading
+function showLoading() {
+  const loading = document.getElementById("loadingOverlay")
+  if (loading) {
+    loading.style.display = "flex"
+  }
 }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig)
+function hideLoading() {
+  const loading = document.getElementById("loadingOverlay")
+  if (loading) {
+    loading.style.display = "none"
+  }
+}
 
-// Obtener instancia de autenticación
-const auth = getAuth(app)
-
-// Proveedores
-const googleProvider = new GoogleAuthProvider()
-const facebookProvider = new FacebookAuthProvider()
-
-// Elementos del DOM
-const loadingOverlay = document.getElementById("loadingOverlay")
-
-// Verificar si el usuario ya está logueado
-document.addEventListener("DOMContentLoaded", () => {
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      // Si el usuario está logueado, obtener el ID token y enviarlo al backend PHP
-      try {
-        const idToken = await user.getIdToken()
-        const currentPage = window.location.pathname
-
-        // Redirigir a auth_callback.php para que el backend establezca la sesión PHP
-        if (currentPage.includes("login.html") || currentPage.includes("signup.html")) {
-          window.location.href = `auth_callback.php?idToken=${idToken}`
-        }
-      } catch (error) {
-        console.error("Error al obtener el ID token:", error)
-        showToast("Error de autenticación. Por favor, intenta de nuevo.", "error")
-        // Opcional: forzar logout si hay un error grave con el token
-        signOut(auth)
-      }
-    } else {
-      // Si el usuario no está logueado, y está en una página protegida, redirigir a login
-      const currentPage = window.location.pathname
-      if (currentPage.includes("courses.php")) {
-        window.location.href = "login.html"
-      }
-    }
-  })
-})
-
-// Mostrar/ocultar contraseña
-document.querySelectorAll(".toggle-password").forEach((icon) => {
-  icon.addEventListener("click", () => {
-    const input = icon.previousElementSibling
-    if (input.type === "password") {
-      input.type = "text"
-      icon.classList.remove("fa-eye")
-      icon.classList.add("fa-eye-slash")
-    } else {
-      input.type = "password"
-      icon.classList.remove("fa-eye-slash")
-      icon.classList.add("fa-eye")
-    }
-  })
-})
-
-// Función para notificaciones toast
-function showToast(message, type = "success") {
+// Función para mostrar mensajes
+function showMessage(message, type = "success") {
+  // Remover toasts existentes
   const existingToasts = document.querySelectorAll(".toast")
   existingToasts.forEach((toast) => toast.remove())
 
@@ -96,376 +46,200 @@ function showToast(message, type = "success") {
   document.body.appendChild(toast)
 
   setTimeout(() => {
-    toast.remove()
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast)
+    }
   }, 3000)
 }
 
-// Mostrar overlay de carga
-function showLoading() {
-  if (loadingOverlay) {
-    loadingOverlay.classList.add("show")
-  }
+// Función para determinar si es admin
+function isAdmin(user) {
+  const adminEmails = ["admin@ecommerce.com", "admin@elprofehernan.com"]
+  return user && adminEmails.includes(user.email)
 }
 
-// Ocultar overlay de carga
-function hideLoading() {
-  if (loadingOverlay) {
-    loadingOverlay.classList.remove("show")
-  }
-}
+// Configurar el listener del estado de autenticación
+function setupAuthStateListener() {
+  auth.onAuthStateChanged(async (user) => {
+    console.log("Estado de auth cambió:", user ? `Usuario: ${user.email}` : "No logueado")
 
-// Manejar errores de autenticación
-function handleAuthError(error) {
-  hideLoading()
-  let errorMessage = "Ocurrió un error. Por favor, intenta de nuevo."
+    if (user) {
+      const currentPage = window.location.pathname
 
-  switch (error.code) {
-    case "auth/email-already-in-use":
-      errorMessage = "Este correo ya está registrado. Usa otro o inicia sesión."
-      break
-    case "auth/invalid-email":
-      errorMessage = "Por favor, ingresa un correo válido."
-      break
-    case "auth/weak-password":
-      errorMessage = "La contraseña debe tener al menos 6 caracteres."
-      break
-    case "auth/user-not-found":
-    case "auth/wrong-password":
-      errorMessage = "Correo o contraseña inválidos. Intenta de nuevo."
-      break
-    case "auth/too-many-requests":
-      errorMessage = "Demasiados intentos fallidos. Intenta de nuevo más tarde."
-      break
-    case "auth/account-exists-with-different-credential":
-      errorMessage = "Ya existe una cuenta con este correo pero con otras credenciales."
-      break
-    case "auth/popup-closed-by-user":
-      return // No mostrar error si el usuario cierra el popup
-    default:
-      console.error("Error de autenticación:", error)
-  }
-
-  showToast(errorMessage, "error")
-}
-
-// Funcionalidad de Login
-if (document.getElementById("loginForm")) {
-  const loginForm = document.getElementById("loginForm")
-  const emailInput = document.getElementById("email")
-  const passwordInput = document.getElementById("password")
-  const emailError = document.getElementById("emailError")
-  const passwordError = document.getElementById("passwordError")
-  const rememberMe = document.getElementById("rememberMe")
-  const googleLoginBtn = document.getElementById("googleLogin")
-  const facebookLoginBtn = document.getElementById("facebookLogin")
-  const forgotPasswordLink = document.getElementById("forgotPassword")
-  const passwordResetModal = document.getElementById("passwordResetModal")
-  const resetPasswordForm = document.getElementById("resetPasswordForm")
-  const resetEmailInput = document.getElementById("resetEmail")
-  const resetEmailError = document.getElementById("resetEmailError")
-  const closeModalBtn = document.querySelector(".close-modal")
-
-  // Validación de correo
-  function validateEmail(email) {
-    const re =
-      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-    return re.test(String(email).toLowerCase())
-  }
-
-  // Enviar formulario de login
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault()
-
-    emailError.textContent = ""
-    passwordError.textContent = ""
-
-    const email = emailInput.value.trim()
-    const password = passwordInput.value
-    let isValid = true
-
-    if (!email) {
-      emailError.textContent = "El correo es requerido"
-      isValid = false
-    } else if (!validateEmail(email)) {
-      emailError.textContent = "Por favor, ingresa un correo válido"
-      isValid = false
-    }
-
-    if (!password) {
-      passwordError.textContent = "La contraseña es requerida"
-      isValid = false
-    }
-
-    if (isValid) {
-      showLoading()
-      try {
-        const persistence = rememberMe.checked ? browserLocalPersistence : browserSessionPersistence
-        await setPersistence(auth, persistence)
-        const userCredential = await signInWithEmailAndPassword(auth, email, password)
-        const idToken = await userCredential.user.getIdToken()
-        window.location.href = `auth_callback.php?idToken=${idToken}`
-      } catch (error) {
-        handleAuthError(error)
-      }
-    }
-  })
-
-  // Login con Google
-  googleLoginBtn.addEventListener("click", async () => {
-    showLoading()
-    try {
-      const persistence = rememberMe.checked ? browserLocalPersistence : browserSessionPersistence
-      await setPersistence(auth, persistence)
-      const userCredential = await signInWithPopup(auth, googleProvider)
-      const idToken = await userCredential.user.getIdToken()
-      window.location.href = `auth_callback.php?idToken=${idToken}`
-    } catch (error) {
-      handleAuthError(error)
-    }
-  })
-
-  // Login con Facebook
-  facebookLoginBtn.addEventListener("click", async () => {
-    showLoading()
-    try {
-      const persistence = rememberMe.checked ? browserLocalPersistence : browserSessionPersistence
-      await setPersistence(auth, persistence)
-      const userCredential = await signInWithPopup(auth, facebookProvider)
-      const idToken = await userCredential.user.getIdToken()
-      window.location.href = `auth_callback.php?idToken=${idToken}`
-    } catch (error) {
-      handleAuthError(error)
-    }
-  })
-
-  // Modal de restablecimiento de contraseña
-  forgotPasswordLink.addEventListener("click", (e) => {
-    e.preventDefault()
-    passwordResetModal.classList.add("show")
-  })
-
-  closeModalBtn.addEventListener("click", () => {
-    passwordResetModal.classList.remove("show")
-  })
-
-  passwordResetModal.addEventListener("click", (e) => {
-    if (e.target === passwordResetModal) {
-      passwordResetModal.classList.remove("show")
-    }
-  })
-
-  resetPasswordForm.addEventListener("submit", async (e) => {
-    e.preventDefault()
-
-    resetEmailError.textContent = ""
-    const email = resetEmailInput.value.trim()
-
-    if (!email) {
-      resetEmailError.textContent = "El correo es requerido"
-      return
-    } else if (!validateEmail(email)) {
-      resetEmailError.textContent = "Por favor, ingresa un correo válido"
-      return
-    }
-
-    showLoading()
-    try {
-      await sendPasswordResetEmail(auth, email)
-      hideLoading()
-      passwordResetModal.classList.remove("show")
-      showToast("Correo de restablecimiento enviado. Revisa tu bandeja.", "success")
-    } catch (error) {
-      handleAuthError(error)
-    }
-  })
-}
-
-// Funcionalidad de Signup
-if (document.getElementById("signupForm")) {
-  const signupForm = document.getElementById("signupForm")
-  const firstNameInput = document.getElementById("firstName")
-  const lastNameInput = document.getElementById("lastName")
-  const emailInput = document.getElementById("email")
-  const passwordInput = document.getElementById("password")
-  const confirmPasswordInput = document.getElementById("confirmPassword")
-  const termsAgree = document.getElementById("termsAgree")
-  const firstNameError = document.getElementById("firstNameError")
-  const lastNameError = document.getElementById("lastNameError")
-  const emailError = document.getElementById("emailError")
-  const passwordError = document.getElementById("passwordError")
-  const confirmPasswordError = document.getElementById("confirmPasswordError")
-  const termsAgreeError = document.getElementById("termsAgreeError")
-  const passwordStrength = document.getElementById("passwordStrength")
-  const strengthSegments = passwordStrength.querySelectorAll(".strength-segment")
-  const strengthText = passwordStrength.querySelector(".strength-text")
-  const googleSignupBtn = document.getElementById("googleSignup")
-  const facebookSignupBtn = document.getElementById("facebookSignup")
-
-  // Validación de correo
-  function validateEmail(email) {
-    const re =
-      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-    return re.test(String(email).toLowerCase())
-  }
-
-  // Verificador de fuerza de contraseña
-  function checkPasswordStrength(password) {
-    let strength = 0
-
-    if (password.length >= 8) strength += 1
-    if (/[a-z]/.test(password)) strength += 1
-    if (/[A-Z]/.test(password)) strength += 1
-    if (/[0-9]/.test(password)) strength += 1
-    if (/[^a-zA-Z0-9]/.test(password)) strength += 1
-
-    strengthSegments.forEach((segment, index) => {
-      segment.className = "strength-segment"
-      if (index < strength) {
-        if (strength <= 2) {
-          segment.classList.add("weak")
-        } else if (strength <= 3) {
-          segment.classList.add("medium")
-        } else {
-          segment.classList.add("strong")
+      // Si estamos en login o signup, redirigir
+      if (currentPage.includes("login.html") || currentPage.includes("signup.html")) {
+        try {
+          const idToken = await user.getIdToken()
+          console.log("Redirigiendo con token...")
+          window.location.href = `auth_callback.php?idToken=${idToken}`
+        } catch (error) {
+          console.error("Error obteniendo token:", error)
+          showMessage("Error de autenticación", "error")
         }
+      } else {
+        // Actualizar UI en otras páginas
+        updateUI(user)
+      }
+    } else {
+      // Usuario no logueado
+      const currentPage = window.location.pathname
+      if (currentPage.includes("courses.php")) {
+        window.location.href = "../../login.html"
+      }
+      updateUI(null)
+    }
+  })
+}
+
+// Configurar eventos de los formularios
+function setupAuthEvents() {
+  // Login form
+  const loginForm = document.getElementById("loginForm")
+  if (loginForm) {
+    console.log("Configurando formulario de login")
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault()
+      const email = document.getElementById("email").value
+      const password = document.getElementById("password").value
+
+      console.log("Intentando login con email:", email)
+      showLoading()
+
+      try {
+        await auth.signInWithEmailAndPassword(email, password)
+        showMessage("Login exitoso", "success")
+      } catch (error) {
+        console.error("Error en login:", error)
+        hideLoading()
+        showMessage("Error: " + error.message, "error")
       }
     })
-
-    if (password.length === 0) {
-      strengthText.textContent = "Fuerza de la contraseña"
-    } else if (strength <= 2) {
-      strengthText.textContent = "Contraseña débil"
-    } else if (strength <= 3) {
-      strengthText.textContent = "Contraseña media"
-    } else {
-      strengthText.textContent = "Contraseña fuerte"
-    }
-
-    return strength
   }
 
-  passwordInput.addEventListener("input", () => {
-    checkPasswordStrength(passwordInput.value)
-  })
+  // Google login button
+  const googleLoginBtn = document.getElementById("googleLogin")
+  if (googleLoginBtn) {
+    console.log("Configurando botón de Google login")
 
-  // Enviar formulario de signup
-  signupForm.addEventListener("submit", async (e) => {
-    e.preventDefault()
-
-    firstNameError.textContent = ""
-    lastNameError.textContent = ""
-    emailError.textContent = ""
-    passwordError.textContent = ""
-    confirmPasswordError.textContent = ""
-    termsAgreeError.textContent = ""
-
-    const firstName = firstNameInput.value.trim()
-    const lastName = lastNameInput.value.trim()
-    const email = emailInput.value.trim()
-    const password = passwordInput.value
-    const confirmPassword = confirmPasswordInput.value
-    let isValid = true
-
-    if (!firstName) {
-      firstNameError.textContent = "El nombre es requerido"
-      isValid = false
-    }
-
-    if (!lastName) {
-      lastNameError.textContent = "El apellido es requerido"
-      isValid = false
-    }
-
-    if (!email) {
-      emailError.textContent = "El correo es requerido"
-      isValid = false
-    } else if (!validateEmail(email)) {
-      emailError.textContent = "Por favor, ingresa un correo válido"
-      isValid = false
-    }
-
-    if (!password) {
-      passwordError.textContent = "La contraseña es requerida"
-      isValid = false
-    } else if (password.length < 6) {
-      passwordError.textContent = "La contraseña debe tener al menos 6 caracteres"
-      isValid = false
-    } else if (checkPasswordStrength(password) <= 2) {
-      passwordError.textContent = "Por favor, elige una contraseña más fuerte"
-      isValid = false
-    }
-
-    if (!confirmPassword) {
-      confirmPasswordError.textContent = "Confirma tu contraseña"
-      isValid = false
-    } else if (password !== confirmPassword) {
-      confirmPasswordError.textContent = "Las contraseñas no coinciden"
-      isValid = false
-    }
-
-    if (!termsAgree.checked) {
-      termsAgreeError.textContent = "Debes aceptar los términos"
-      isValid = false
-    }
-
-    if (isValid) {
+    googleLoginBtn.addEventListener("click", async (e) => {
+      e.preventDefault()
+      console.log("Click en Google login")
       showLoading()
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-        const user = userCredential.user
 
-        await updateProfile(user, {
+      try {
+        console.log("Intentando popup de Google...")
+        const result = await auth.signInWithPopup(googleProvider)
+        console.log("Login con Google exitoso:", result.user.email)
+        showMessage("Login con Google exitoso", "success")
+      } catch (error) {
+        console.error("Error en Google login:", error)
+        hideLoading()
+
+        if (error.code === "auth/popup-closed-by-user") {
+          console.log("Usuario cerró el popup")
+          return
+        }
+
+        showMessage("Error con Google: " + error.message, "error")
+      }
+    })
+  } else {
+    console.log("Botón de Google no encontrado")
+  }
+
+  // Signup form
+  const signupForm = document.getElementById("signupForm")
+  if (signupForm) {
+    console.log("Configurando formulario de signup")
+
+    signupForm.addEventListener("submit", async (e) => {
+      e.preventDefault()
+
+      const firstName = document.getElementById("firstName").value
+      const lastName = document.getElementById("lastName").value
+      const email = document.getElementById("email").value
+      const password = document.getElementById("password").value
+      const confirmPassword = document.getElementById("confirmPassword").value
+
+      if (password !== confirmPassword) {
+        showMessage("Las contraseñas no coinciden", "error")
+        return
+      }
+
+      console.log("Intentando signup con email:", email)
+      showLoading()
+
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password)
+        await userCredential.user.updateProfile({
           displayName: `${firstName} ${lastName}`,
         })
-
-        await sendEmailVerification(user)
-        const idToken = await user.getIdToken()
-        window.location.href = `auth_callback.php?idToken=${idToken}`
+        showMessage("Registro exitoso", "success")
       } catch (error) {
-        handleAuthError(error)
+        console.error("Error en signup:", error)
+        hideLoading()
+        showMessage("Error: " + error.message, "error")
       }
-    }
-  })
+    })
+  }
 
-  // Signup con Google
-  googleSignupBtn.addEventListener("click", async () => {
-    showLoading()
-    try {
-      const userCredential = await signInWithPopup(auth, googleProvider)
-      const idToken = await userCredential.user.getIdToken()
-      window.location.href = `auth_callback.php?idToken=${idToken}`
-    } catch (error) {
-      handleAuthError(error)
-    }
-  })
+  // Google signup button
+  const googleSignupBtn = document.getElementById("googleSignup")
+  if (googleSignupBtn) {
+    console.log("Configurando botón de Google signup")
 
-  // Signup con Facebook
-  facebookSignupBtn.addEventListener("click", async () => {
-    showLoading()
-    try {
-      const userCredential = await signInWithPopup(auth, facebookProvider)
-      const idToken = await userCredential.user.getIdToken()
-      window.location.href = `auth_callback.php?idToken=${idToken}`
-    } catch (error) {
-      handleAuthError(error)
-    }
-  })
+    googleSignupBtn.addEventListener("click", async (e) => {
+      e.preventDefault()
+      console.log("Click en Google signup")
+      showLoading()
+
+      try {
+        const result = await auth.signInWithPopup(googleProvider)
+        console.log("Signup con Google exitoso:", result.user.email)
+        showMessage("Registro con Google exitoso", "success")
+      } catch (error) {
+        console.error("Error en Google signup:", error)
+        hideLoading()
+
+        if (error.code === "auth/popup-closed-by-user") {
+          console.log("Usuario cerró el popup")
+          return
+        }
+
+        showMessage("Error con Google: " + error.message, "error")
+      }
+    })
+  }
+
+  // Logout button
+  const logoutBtn = document.getElementById("logoutBtn")
+  if (logoutBtn) {
+    console.log("Configurando botón de logout")
+
+    logoutBtn.addEventListener("click", async (e) => {
+      e.preventDefault()
+      console.log("Click en logout")
+      showLoading()
+
+      try {
+        await auth.signOut()
+        window.location.href = "logout.php"
+      } catch (error) {
+        console.error("Error en logout:", error)
+        hideLoading()
+        showMessage("Error al cerrar sesión", "error")
+      }
+    })
+  }
 }
 
-// Funcionalidad de Logout
-const logoutBtn = document.getElementById("logoutBtn")
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", async (e) => {
-    e.preventDefault()
-    showLoading()
-    try {
-      await signOut(auth)
-      // Redirigir a un script PHP para limpiar la sesión del servidor
-      window.location.href = "logout.php"
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error)
-      showToast("Error al cerrar sesión. Por favor, intenta de nuevo.", "error")
-      hideLoading()
-    }
-  })
+// Función para actualizar UI (puede ser sobrescrita desde otras páginas)
+function updateUI(user) {
+  console.log("Actualizando UI para:", user ? user.email : "usuario no logueado")
+
+  // Esta función puede ser personalizada en cada página
+  if (typeof window.updateUI === "function" && window.updateUI !== updateUI) {
+    window.updateUI(user)
+  }
 }

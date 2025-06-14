@@ -3,7 +3,7 @@ import firebase from "firebase/app"
 import "firebase/auth"
 import "firebase/firestore"
 
-// Firebase configuration
+// Firebase configuration - usando variables globales simples
 const firebaseConfig = {
   apiKey: "AIzaSyAtCjRAp58m3IewqHWgvwLuxxdIb5026kg",
   authDomain: "e-commerce-elprofehernan.firebaseapp.com",
@@ -11,13 +11,17 @@ const firebaseConfig = {
   projectId: "e-commerce-elprofehernan",
   storageBucket: "e-commerce-elprofehernan.firebasestorage.app",
   messagingSenderId: "769275191194",
-  appId: "1:769275191194:web:cb88de78f4ed9da5f56423",
-  measurementId: "G-F2Q4QC6BKW",
+  appId: "1:769275191194:web:5546d2aed7bd9e60f56423",
+  measurementId: "G-3RGDE75FEY",
 }
 
-// Initialize Firebase
+// Inicializar Firebase
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig)
 }
 
-export default firebase
+// Variables globales para usar en otros scripts
+window.auth = firebase.auth()
+window.googleProvider = new firebase.auth.GoogleAuthProvider()
+
+console.log("Firebase inicializado correctamente")
