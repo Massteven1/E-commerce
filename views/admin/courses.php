@@ -1,51 +1,89 @@
 <?php
-require_once __DIR__ . '/../../controllers/PlaylistController.php';
-require_once __DIR__ . '/../../controllers/VideoController.php';
-require_once __DIR__ . '/../../controllers/AdminController.php';
+// Función simple para cargar controladores
+function loadController($name) {
+    $file = __DIR__ . "/../../controllers/{$name}Controller.php";
+    if (file_exists($file)) {
+        require_once $file;
+        return true;
+    }
+    return false;
+}
 
-$controller = isset($_GET['controller']) ? $_GET['controller'] : 'admin';
-$action = isset($_GET['action']) ? $_GET['action'] : 'dashboard';
+// Cargar todos los controladores necesarios
+$controllers = ['Admin', 'Playlist', 'Video'];
+foreach ($controllers as $controller) {
+    if (!loadController($controller)) {
+        die("Error: No se pudo cargar el controlador {$controller}");
+    }
+}
 
-$id = isset($_GET['id']) ? $_GET['id'] : null;
+// Obtener parámetros
+$controller = $_GET['controller'] ?? 'admin';
+$action = $_GET['action'] ?? 'dashboard';
+$id = $_GET['id'] ?? null;
 
-switch ($controller) {
-    case 'admin':
-        $adminController = new AdminController();
-        if ($action === 'dashboard') {
-            $adminController->dashboard();
-        } else {
+// Enrutar
+try {
+    switch ($controller) {
+        case 'admin':
+            $adminController = new AdminController();
+            if ($action === 'dashboard') {
+                $adminController->dashboard();
+            } else {
+                header('Location: courses.php?controller=admin&action=dashboard');
+                exit();
+            }
+            break;
+
+        case 'playlist':
+            $playlistController = new PlaylistController();
+            switch ($action) {
+                case 'create':
+                    $playlistController->create();
+                    break;
+                case 'edit':
+                    if ($id) $playlistController->edit($id);
+                    break;
+                case 'update':
+                    $playlistController->update();
+                    break;
+                case 'delete':
+                    if ($id) $playlistController->delete($id);
+                    break;
+                default:
+                    $playlistController->index();
+            }
+            break;
+
+        case 'video':
+            $videoController = new VideoController();
+            switch ($action) {
+                case 'upload':
+                    $videoController->upload();
+                    break;
+                case 'view_playlist':
+                    if ($id) $videoController->viewPlaylist($id);
+                    break;
+                case 'view_video':
+                    if ($id) $videoController->viewVideo($id);
+                    break;
+                case 'edit_video':
+                    if ($id) $videoController->editVideo($id);
+                    break;
+                case 'update_video':
+                    $videoController->updateVideo();
+                    break;
+                case 'delete_video':
+                    if ($id) $videoController->deleteVideo($id);
+                    break;
+            }
+            break;
+
+        default:
             header('Location: courses.php?controller=admin&action=dashboard');
             exit();
-        }
-        break;
-    case 'playlist':
-        $playlistController = new PlaylistController();
-        if ($action === 'create') {
-            $playlistController->create();
-        } elseif ($action === 'edit' && $id) {
-            $playlistController->edit($id);
-        } elseif ($action === 'update') {
-            $playlistController->update();
-        } else {
-            $playlistController->index();
-        }
-        break;
-    case 'video':
-        $videoController = new VideoController();
-        if ($action === 'upload') {
-            $videoController->upload();
-        } elseif ($action === 'view_playlist') {
-            $videoController->viewPlaylist($id);
-        } elseif ($action === 'view_video') {
-            $videoController->viewVideo($id);
-        } elseif ($action === 'edit_video' && $id) { // Nuevo: Acción para editar video
-            $videoController->editVideo($id);
-        } elseif ($action === 'update_video') { // Nuevo: Acción para actualizar video
-            $videoController->updateVideo();
-        }
-        break;
-    default:
-        header('Location: courses.php?controller=admin&action=dashboard');
-        exit();
+    }
+} catch (Exception $e) {
+    die("Error en la aplicación: " . $e->getMessage());
 }
 ?>

@@ -1,17 +1,27 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/Playlist.php';
-
 class PlaylistController {
     private $db;
     private $playlistModel;
-    private $upload_dir_images;
+    private $videoModel;
+    private $uploadDirs;
 
     public function __construct() {
-        $this->db = new Database();
-        $this->playlistModel = new Playlist($this->db->getConnection());
-        // Corregir la ruta: debe apuntar a la raíz del proyecto
-        $this->upload_dir_images = __DIR__ . '/../uploads/images/';
+        // Cargar dependencias
+        require_once __DIR__ . '/../config/Database.php';
+        require_once __DIR__ . '/../models/Playlist.php';
+        require_once __DIR__ . '/../models/Video.php';
+
+        $database = new Database();
+        $this->db = $database->getConnection();
+        $this->playlistModel = new Playlist($this->db);
+        $this->videoModel = new Video($this->db);
+
+        // Configurar directorios de subida
+        $this->uploadDirs = [
+            'images' => __DIR__ . '/../uploads/images/',
+            'videos' => __DIR__ . '/../uploads/videos/',
+            'thumbnails' => __DIR__ . '/../uploads/thumbnails/'
+        ];
     }
 
     public function index() {
@@ -20,104 +30,135 @@ class PlaylistController {
     }
 
     public function create() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->playlistModel->name = $_POST['name'];
-            $this->playlistModel->description = $_POST['description'] ?? '';
-            $this->playlistModel->price = $_POST['price'] ?? 0.00;
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return;
+        }
 
-            if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
-                $original_filename = basename($_FILES["cover_image"]["name"]);
-                $file_extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
+        $data = [
+            'name' => $_POST['name'] ?? '',
+            'description' => $_POST['description'] ?? '',
+            'price' => $_POST['price'] ?? 0.00,
+            'cover_image' => null
+        ];
 
-                if ($file_extension !== 'jpeg' && $file_extension !== 'jpg') {
-                    die("Solo se permiten archivos JPEG.");
-                }
+        // Manejar subida de imagen
+        if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
+            $data['cover_image'] = $this->handleImageUpload($_FILES['cover_image'], 'images');
+        }
 
-                // Crear directorio si no existe
-                if (!file_exists($this->upload_dir_images)) {
-                    if (!mkdir($this->upload_dir_images, 0777, true)) {
-                        die("Error: No se pudo crear el directorio de subida de imágenes. Verifica los permisos de la carpeta padre: " . $this->upload_dir_images);
-                    }
-                }
-
-                $unique_filename = time() . '_' . uniqid() . '.' . $file_extension;
-                $target_file = $this->upload_dir_images . $unique_filename;
-
-                if (move_uploaded_file($_FILES["cover_image"]["tmp_name"], $target_file)) {
-                    // Guardar la ruta relativa desde la raíz del proyecto
-                    $this->playlistModel->cover_image = 'uploads/images/' . $unique_filename;
-                    echo "Imagen subida correctamente: " . $target_file . "<br>";
-                } else {
-                    die("Error al subir la imagen. Verifica permisos en " . $this->upload_dir_images . ". Ruta tentativa: " . $target_file);
-                }
-            } else {
-                $this->playlistModel->cover_image = null;
-            }
-
-            if ($this->playlistModel->create()) {
-                header('Location: courses.php?controller=playlist&action=index');
-                exit();
-            } else {
-                die("Error al crear la lista en la base de datos.");
-            }
+        if ($this->playlistModel->create($data)) {
+            $this->redirect('playlist', 'index');
+        } else {
+            die("Error al crear la lista en la base de datos.");
         }
     }
 
     public function edit($id) {
         $playlist = $this->playlistModel->readOne($id);
-        if ($playlist) {
-            require_once __DIR__ . '/../views/admin/edit_playlist.php';
-        } else {
+        if (!$playlist) {
             die("Lista de reproducción no encontrada.");
         }
+        require_once __DIR__ . '/../views/admin/edit_playlist.php';
     }
 
     public function update() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->playlistModel->id = $_POST['id'];
-            $this->playlistModel->name = $_POST['name'];
-            $this->playlistModel->description = $_POST['description'] ?? '';
-            $this->playlistModel->price = $_POST['price'] ?? 0.00;
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return;
+        }
 
-            // Obtener datos actuales
-            $current_playlist = $this->playlistModel->readOne($_POST['id']);
-            $this->playlistModel->cover_image = $current_playlist['cover_image'];
+        $id = $_POST['id'];
+        $current_playlist = $this->playlistModel->readOne($id);
+        
+        $data = [
+            'name' => $_POST['name'] ?? '',
+            'description' => $_POST['description'] ?? '',
+            'price' => $_POST['price'] ?? 0.00,
+            'cover_image' => $current_playlist['cover_image']
+        ];
 
-            if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
-                $original_filename = basename($_FILES["cover_image"]["name"]);
-                $file_extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
-
-                if ($file_extension !== 'jpeg' && $file_extension !== 'jpg') {
-                    die("Solo se permiten archivos JPEG.");
-                }
-
-                if (!file_exists($this->upload_dir_images)) {
-                    if (!mkdir($this->upload_dir_images, 0777, true)) {
-                        die("Error: No se pudo crear el directorio de subida de imágenes.");
-                    }
-                }
-
-                $unique_filename = time() . '_' . uniqid() . '.' . $file_extension;
-                $target_file = $this->upload_dir_images . $unique_filename;
-
-                if (move_uploaded_file($_FILES["cover_image"]["tmp_name"], $target_file)) {
-                    // Eliminar imagen anterior si existe
-                    if ($current_playlist['cover_image'] && file_exists(__DIR__ . '/../' . $current_playlist['cover_image'])) {
-                        unlink(__DIR__ . '/../' . $current_playlist['cover_image']);
-                    }
-                    $this->playlistModel->cover_image = 'uploads/images/' . $unique_filename;
-                } else {
-                    die("Error al subir la nueva imagen. Verifica permisos.");
-                }
+        // Manejar nueva imagen si se subió
+        if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
+            // Eliminar imagen anterior
+            if ($current_playlist['cover_image']) {
+                $this->deleteFile($current_playlist['cover_image']);
             }
+            $data['cover_image'] = $this->handleImageUpload($_FILES['cover_image'], 'images');
+        }
 
-            if ($this->playlistModel->update()) {
-                header('Location: courses.php?controller=playlist&action=index');
-                exit();
-            } else {
-                die("Error al actualizar la lista.");
+        if ($this->playlistModel->update($id, $data)) {
+            $this->redirect('playlist', 'index');
+        } else {
+            die("Error al actualizar la lista.");
+        }
+    }
+
+    public function delete($id) {
+        $playlist = $this->playlistModel->readOne($id);
+        if (!$playlist) {
+            die("Lista de reproducción no encontrada.");
+        }
+
+        // Eliminar archivos asociados
+        if ($playlist['cover_image']) {
+            $this->deleteFile($playlist['cover_image']);
+        }
+
+        // Eliminar videos de la playlist
+        $videos = $this->videoModel->readByPlaylist($id);
+        foreach ($videos as $video) {
+            if ($video['file_path']) {
+                $this->deleteFile($video['file_path']);
+            }
+            if ($video['thumbnail_image']) {
+                $this->deleteFile($video['thumbnail_image']);
             }
         }
+
+        $this->videoModel->deleteByPlaylist($id);
+
+        if ($this->playlistModel->delete($id)) {
+            $this->redirect('playlist', 'index');
+        } else {
+            die("Error al eliminar la lista de reproducción.");
+        }
+    }
+
+    private function handleImageUpload($file, $type) {
+        $allowedTypes = ['jpeg', 'jpg'];
+        if ($type === 'thumbnails') {
+            $allowedTypes[] = 'png';
+        }
+
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($extension, $allowedTypes)) {
+            die("Tipo de archivo no permitido. Solo: " . implode(', ', $allowedTypes));
+        }
+
+        $uploadDir = $this->uploadDirs[$type];
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $filename = time() . '_' . uniqid() . '.' . $extension;
+        $targetPath = $uploadDir . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+            return "uploads/{$type}/" . $filename;
+        } else {
+            die("Error al subir el archivo.");
+        }
+    }
+
+    private function deleteFile($filePath) {
+        $fullPath = __DIR__ . '/../' . $filePath;
+        if (file_exists($fullPath)) {
+            unlink($fullPath);
+        }
+    }
+
+    private function redirect($controller, $action) {
+        header("Location: courses.php?controller={$controller}&action={$action}");
+        exit();
     }
 }
 ?>
