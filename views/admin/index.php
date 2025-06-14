@@ -39,6 +39,18 @@
               <form action="courses.php?controller=playlist&action=create" method="post" enctype="multipart/form-data" class="form-row">
                   <input type="text" name="name" placeholder="Nombre de la lista" required>
                   <textarea name="description" placeholder="Descripción"></textarea>
+                  
+                  <!-- Nuevo campo: Nivel del curso -->
+                  <select name="level" required>
+                      <option value="">Seleccionar Nivel</option>
+                      <option value="A1">A1 - Básico</option>
+                      <option value="A2">A2 - Pre Intermedio</option>
+                      <option value="B1">B1 - Intermedio</option>
+                      <option value="B2">B2 - Intermedio Alto</option>
+                      <option value="C1">C1 - Avanzado</option>
+                      <option value="mixto">Mixto</option>
+                  </select>
+                  
                   <input type="number" name="price" placeholder="Precio del curso" step="0.01" min="0" required>
                   
                   <div class="form-group" style="grid-column: 1 / -1;">
@@ -69,7 +81,9 @@
                       <option value="">Seleccionar Lista</option>
                       <?php if (!empty($playlists)): ?>
                           <?php foreach ($playlists as $playlist): ?>
-                              <option value="<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['name']); ?></option>
+                              <option value="<?php echo htmlspecialchars($playlist['id']); ?>">
+                                  <?php echo htmlspecialchars($playlist['name']); ?> (<?php echo htmlspecialchars($playlist['level']); ?>)
+                              </option>
                           <?php endforeach; ?>
                       <?php endif; ?>
                   </select>
@@ -95,7 +109,7 @@
                               <?php endif; ?>
                           </div>
                           <div class="product-details">
-                              <span class="product-catagory">Playlist</span>
+                              <span class="product-catagory">Playlist - Nivel <?php echo htmlspecialchars($playlist['level']); ?></span>
                               <h4><a href="courses.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
                               <p><?php echo htmlspecialchars($playlist['description'] ?: 'Sin descripción'); ?></p>
                               <div class="product-bottom-details">
@@ -103,7 +117,6 @@
                                   <div class="product-links">
                                       <a href="courses.php?controller=playlist&action=edit&id=<?php echo htmlspecialchars($playlist['id']); ?>" title="Editar"><i class="fa fa-edit"></i></a>
                                       <a href="courses.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($playlist['id']); ?>" title="Ver Videos"><i class="fa fa-eye"></i></a>
-                                      <!-- Nuevo: Botón de eliminar playlist -->
                                       <a href="courses.php?controller=playlist&action=delete&id=<?php echo htmlspecialchars($playlist['id']); ?>" title="Eliminar" onclick="return confirm('¿Estás seguro de que quieres eliminar esta lista de reproducción y todos sus videos asociados? Esta acción es irreversible.');"><i class="fa fa-trash-alt" style="color: var(--red-color);"></i></a>
                                   </div>
                               </div>

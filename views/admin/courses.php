@@ -1,4 +1,8 @@
 <?php
+// Iniciar la sesión al principio de todo
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 // Función simple para cargar controladores
 function loadController($name) {
     $file = __DIR__ . "/../../controllers/{$name}Controller.php";

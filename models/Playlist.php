@@ -8,11 +8,12 @@ class Playlist {
     }
 
     public function create($data) {
-        $query = "INSERT INTO {$this->table} (name, description, cover_image, price) VALUES (?, ?, ?, ?)";
+        $query = "INSERT INTO {$this->table} (name, description, level, cover_image, price) VALUES (?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
         return $stmt->execute([
             $data['name'],
             $data['description'],
+            $data['level'],
             $data['cover_image'],
             $data['price']
         ]);
@@ -33,11 +34,12 @@ class Playlist {
     }
 
     public function update($id, $data) {
-        $query = "UPDATE {$this->table} SET name = ?, description = ?, cover_image = ?, price = ? WHERE id = ?";
+        $query = "UPDATE {$this->table} SET name = ?, description = ?, level = ?, cover_image = ?, price = ? WHERE id = ?";
         $stmt = $this->conn->prepare($query);
         return $stmt->execute([
             $data['name'],
             $data['description'],
+            $data['level'],
             $data['cover_image'],
             $data['price'],
             $id

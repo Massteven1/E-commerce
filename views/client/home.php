@@ -31,16 +31,16 @@
             <?php if (!empty($playlists)): ?>
                 <?php foreach ($playlists as $playlist): ?>
                     <div class="product-card">
-                        <div class="product-tumb">
+                        <a href="index.php?controller=playlist&action=view_detail&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="product-tumb">
                             <?php if (!empty($playlist['cover_image'])): ?>
                                 <img src="<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
                             <?php else: ?>
                                 <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
                             <?php endif; ?>
-                        </div>
+                        </a>
                         <div class="product-details">
-                            <span class="product-catagory">Lista de Reproducción</span>
-                            <h4><a href="#"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
+                            <span class="product-catagory">Nivel <?php echo htmlspecialchars($playlist['level']); ?></span>
+                            <h4><a href="index.php?controller=playlist&action=view_detail&id=<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
                             <p><?php echo htmlspecialchars($playlist['description'] ?: 'Sin descripción'); ?></p>
                             <div class="product-bottom-details">
                                 <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?></div>

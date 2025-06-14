@@ -8,6 +8,7 @@ if (session_status() == PHP_SESSION_NONE) {
 require_once __DIR__ . '/config/Database.php';
 require_once __DIR__ . '/models/Playlist.php';
 require_once __DIR__ . '/controllers/CartController.php';
+require_once __DIR__ . '/controllers/PlaylistController.php'; // Asegúrate de que esté incluido
 
 // Función para cargar controladores
 function loadController($name) {
@@ -62,6 +63,20 @@ try {
                     $cartController->view();
             }
             break;
+        
+        case 'playlist': // Nuevo caso para el controlador de playlist del cliente
+            $playlistController = new PlaylistController(); // Reutilizamos el controlador existente
+            switch ($action) {
+                case 'view_detail':
+                    if ($id) $playlistController->viewClientDetail($id);
+                    break;
+                // Puedes añadir más acciones relacionadas con playlists para el cliente aquí
+                default:
+                    // Si la acción no es reconocida, redirigir a la página principal de playlists o a home
+                    header('Location: index.php');
+                    exit();
+            }
+            break;
 
         default:
             // Redirigir a la página principal si el controlador no es reconocido
@@ -83,6 +98,7 @@ $view_content = ob_get_clean();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>El Profesor Hernan</title>
     <link rel="stylesheet" href="public/css/styles.css">
+    <link rel="stylesheet" href="public/css/course-detail.css"> <!-- Nuevo: CSS para detalles del curso -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>

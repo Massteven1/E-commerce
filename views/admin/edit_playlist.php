@@ -39,9 +39,20 @@
 
                 <input type="text" name="name" placeholder="Nombre de la lista" value="<?php echo htmlspecialchars($playlist['name']); ?>" required>
                 <textarea name="description" placeholder="Descripción"><?php echo htmlspecialchars($playlist['description']); ?></textarea>
+                
+                <!-- Campo de nivel -->
+                <select name="level" required>
+                    <option value="">Seleccionar Nivel</option>
+                    <option value="A1" <?php echo ($playlist['level'] == 'A1') ? 'selected' : ''; ?>>A1 - Básico</option>
+                    <option value="A2" <?php echo ($playlist['level'] == 'A2') ? 'selected' : ''; ?>>A2 - Pre Intermedio</option>
+                    <option value="B1" <?php echo ($playlist['level'] == 'B1') ? 'selected' : ''; ?>>B1 - Intermedio</option>
+                    <option value="B2" <?php echo ($playlist['level'] == 'B2') ? 'selected' : ''; ?>>B2 - Intermedio Alto</option>
+                    <option value="C1" <?php echo ($playlist['level'] == 'C1') ? 'selected' : ''; ?>>C1 - Avanzado</option>
+                    <option value="mixto" <?php echo ($playlist['level'] == 'mixto') ? 'selected' : ''; ?>>Mixto</option>
+                </select>
+                
                 <input type="number" name="price" placeholder="Precio del curso" step="0.01" min="0" value="<?php echo htmlspecialchars($playlist['price']); ?>" required>
 
-                <!-- Nuevo: Etiqueta y aclaración para la imagen de portada de la lista -->
                 <div class="form-group" style="grid-column: 1 / -1;">
                     <label for="cover_image">Imagen de Portada de la Lista (JPG/JPEG)</label>
                     <?php if (!empty($playlist['cover_image'])): ?>
