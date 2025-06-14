@@ -146,7 +146,7 @@
             overflow: hidden;
         }
         .minimized .video-player {
-            height: 169px; /* 16:9 ratio for 300px width */
+            height: 169px;
         }
         .minimize-overlay {
             position: absolute;
@@ -200,8 +200,9 @@
         <div class="video-layout">
             <div class="main-content">
                 <div id="videoContainer" class="video-container">
+                    <!-- Corregir la ruta: usar ruta relativa desde la vista -->
                     <video id="videoPlayer" class="video-player" controls autoplay>
-                        <source src="/<?php echo htmlspecialchars($video['file_path']); ?>" type="video/mp4">
+                        <source src="../../<?php echo htmlspecialchars($video['file_path']); ?>" type="video/mp4">
                         Tu navegador no soporta el elemento de video.
                     </video>
                     <div class="minimize-overlay" title="Minimizar">
@@ -232,7 +233,8 @@
                             <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($related['id']); ?>" class="related-video-item">
                                 <div class="related-thumbnail">
                                     <?php if (!empty($related['thumbnail_image'])): ?>
-                                        <img src="/<?php echo htmlspecialchars($related['thumbnail_image']); ?>" alt="<?php echo htmlspecialchars($related['title']); ?>">
+                                        <!-- Corregir la ruta: usar ruta relativa desde la vista -->
+                                        <img src="../../<?php echo htmlspecialchars($related['thumbnail_image']); ?>" alt="<?php echo htmlspecialchars($related['title']); ?>">
                                     <?php else: ?>
                                         <img src="https://i.imgur.com/xdbHo4E.png" alt="Miniatura por defecto">
                                     <?php endif; ?>
@@ -242,7 +244,7 @@
                                 </div>
                                 <div class="related-video-info">
                                     <h4 class="related-video-title"><?php echo htmlspecialchars($related['title']); ?></h4>
-                                    <span class="related-video-duration">3:45</span> <!-- Duración simulada -->
+                                    <span class="related-video-duration">3:45</span>
                                 </div>
                             </a>
                         <?php endforeach; ?>

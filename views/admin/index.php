@@ -41,7 +41,6 @@
                     <textarea name="description" placeholder="Descripción"></textarea>
                     <input type="number" name="price" placeholder="Precio del curso" step="0.01" min="0" required>
                     
-                    <!-- Nuevo: Etiqueta y aclaración para la imagen de portada de la lista -->
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label for="cover_image">Imagen de Portada de la Lista (JPG/JPEG)</label>
                         <input type="file" id="cover_image" name="cover_image" accept="image/jpeg" required>
@@ -90,7 +89,8 @@
                         <div class="product-card">
                             <div class="product-tumb">
                                 <?php if (!empty($playlist['cover_image'])): ?>
-                                    <img src="/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
+                                    <!-- Corregir la ruta: usar ruta relativa desde la vista -->
+                                    <img src="../../<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
                                 <?php else: ?>
                                     <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
                                 <?php endif; ?>

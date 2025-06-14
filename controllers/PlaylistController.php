@@ -10,7 +10,8 @@ class PlaylistController {
     public function __construct() {
         $this->db = new Database();
         $this->playlistModel = new Playlist($this->db->getConnection());
-        $this->upload_dir_images = __DIR__ . '/../../uploads/images/';
+        // Corregir la ruta: debe apuntar a la raíz del proyecto
+        $this->upload_dir_images = __DIR__ . '/../uploads/images/';
     }
 
     public function index() {
@@ -22,7 +23,7 @@ class PlaylistController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->playlistModel->name = $_POST['name'];
             $this->playlistModel->description = $_POST['description'] ?? '';
-            $this->playlistModel->price = $_POST['price'] ?? 0.00; // Captura el precio
+            $this->playlistModel->price = $_POST['price'] ?? 0.00;
 
             if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
                 $original_filename = basename($_FILES["cover_image"]["name"]);
@@ -32,6 +33,7 @@ class PlaylistController {
                     die("Solo se permiten archivos JPEG.");
                 }
 
+                // Crear directorio si no existe
                 if (!file_exists($this->upload_dir_images)) {
                     if (!mkdir($this->upload_dir_images, 0777, true)) {
                         die("Error: No se pudo crear el directorio de subida de imágenes. Verifica los permisos de la carpeta padre: " . $this->upload_dir_images);
@@ -42,7 +44,9 @@ class PlaylistController {
                 $target_file = $this->upload_dir_images . $unique_filename;
 
                 if (move_uploaded_file($_FILES["cover_image"]["tmp_name"], $target_file)) {
+                    // Guardar la ruta relativa desde la raíz del proyecto
                     $this->playlistModel->cover_image = 'uploads/images/' . $unique_filename;
+                    echo "Imagen subida correctamente: " . $target_file . "<br>";
                 } else {
                     die("Error al subir la imagen. Verifica permisos en " . $this->upload_dir_images . ". Ruta tentativa: " . $target_file);
                 }
@@ -59,7 +63,6 @@ class PlaylistController {
         }
     }
 
-    // Nuevo: Acción para mostrar el formulario de edición
     public function edit($id) {
         $playlist = $this->playlistModel->readOne($id);
         if ($playlist) {
@@ -69,17 +72,16 @@ class PlaylistController {
         }
     }
 
-    // Nuevo: Acción para procesar la actualización de una lista de reproducción
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->playlistModel->id = $_POST['id'];
             $this->playlistModel->name = $_POST['name'];
             $this->playlistModel->description = $_POST['description'] ?? '';
-            $this->playlistModel->price = $_POST['price'] ?? 0.00; // Captura el precio
+            $this->playlistModel->price = $_POST['price'] ?? 0.00;
 
-            // Manejo de la imagen de portada
+            // Obtener datos actuales
             $current_playlist = $this->playlistModel->readOne($_POST['id']);
-            $this->playlistModel->cover_image = $current_playlist['cover_image']; // Por defecto, mantiene la imagen actual
+            $this->playlistModel->cover_image = $current_playlist['cover_image'];
 
             if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
                 $original_filename = basename($_FILES["cover_image"]["name"]);
@@ -91,7 +93,7 @@ class PlaylistController {
 
                 if (!file_exists($this->upload_dir_images)) {
                     if (!mkdir($this->upload_dir_images, 0777, true)) {
-                        die("Error: No se pudo crear el directorio de subida de imágenes. Verifica los permisos de la carpeta padre: " . $this->upload_dir_images);
+                        die("Error: No se pudo crear el directorio de subida de imágenes.");
                     }
                 }
 
@@ -99,9 +101,9 @@ class PlaylistController {
                 $target_file = $this->upload_dir_images . $unique_filename;
 
                 if (move_uploaded_file($_FILES["cover_image"]["tmp_name"], $target_file)) {
-                    // Elimina la imagen antigua si existe y es diferente a la nueva
-                    if ($current_playlist['cover_image'] && file_exists(__DIR__ . '/../../' . $current_playlist['cover_image'])) {
-                        unlink(__DIR__ . '/../../' . $current_playlist['cover_image']);
+                    // Eliminar imagen anterior si existe
+                    if ($current_playlist['cover_image'] && file_exists(__DIR__ . '/../' . $current_playlist['cover_image'])) {
+                        unlink(__DIR__ . '/../' . $current_playlist['cover_image']);
                     }
                     $this->playlistModel->cover_image = 'uploads/images/' . $unique_filename;
                 } else {

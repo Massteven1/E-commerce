@@ -11,7 +11,7 @@
             cursor: pointer;
             overflow: hidden;
             border-radius: 8px;
-            display: block; /* Asegura que el enlace ocupe todo el espacio */
+            display: block;
         }
         .video-thumbnail img {
             width: 100%;
@@ -70,7 +70,7 @@
         }
         .product-links {
             display: flex;
-            gap: 10px; /* Espacio entre los iconos */
+            gap: 10px;
         }
     </style>
 </head>
@@ -98,7 +98,8 @@
                 <i class="fas fa-arrow-left"></i> Volver a Listas
             </a>
             <?php if (isset($playlist['cover_image']) && !empty($playlist['cover_image'])): ?>
-                <img src="/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada de la lista" style="max-width: 300px; height: auto; margin: 0 auto 20px; display: block; border-radius: 10px; box-shadow: var(--shadow);">
+                <!-- Corregir la ruta: usar ruta relativa desde la vista -->
+                <img src="../../<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada de la lista" style="max-width: 300px; height: auto; margin: 0 auto 20px; display: block; border-radius: 10px; box-shadow: var(--shadow);">
             <?php else: ?>
                 <p style="text-align: center; color: var(--dark-gray);">Sin imagen de portada</p>
             <?php endif; ?>
@@ -115,21 +116,22 @@
                         <li class="product-card">
                             <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($video['id']); ?>" class="video-thumbnail">
                                 <?php if (!empty($video['thumbnail_image'])): ?>
-                                    <img src="/<?php echo htmlspecialchars($video['thumbnail_image']); ?>" alt="<?php echo htmlspecialchars($video['title']); ?>">
+                                    <!-- Corregir la ruta: usar ruta relativa desde la vista -->
+                                    <img src="../../<?php echo htmlspecialchars($video['thumbnail_image']); ?>" alt="<?php echo htmlspecialchars($video['title']); ?>">
                                 <?php else: ?>
                                     <img src="https://i.imgur.com/xdbHo4E.png" alt="Miniatura por defecto">
                                 <?php endif; ?>
                                 <div class="play-button">
                                     <i class="fas fa-play"></i>
                                 </div>
-                                <div class="video-duration">3:45</div> <!-- Duración simulada -->
+                                <div class="video-duration">3:45</div>
                             </a>
                             <div class="product-details">
                                 <h4 class="video-title"><?php echo htmlspecialchars($video['title']); ?></h4>
                                 <p class="video-description"><?php echo htmlspecialchars($video['description']); ?></p>
                                 <div class="product-bottom-details">
                                     <div class="product-links">
-                                        <a href="courses.php?controller=video&action=edit_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Editar Video"><i class="fa fa-edit"></i></a> <!-- Botón de editar video -->
+                                        <a href="courses.php?controller=video&action=edit_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Editar Video"><i class="fa fa-edit"></i></a>
                                         <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Ver Video"><i class="fa fa-eye"></i></a>
                                     </div>
                                 </div>
@@ -144,7 +146,7 @@
     </div>
 
     <div class="back-to-top">
-        <a href="#"><i class="fas fa-arrow-up"></i></a>
+        <a href="courses.php?controller=playlist&action=index"><i class="fas fa-arrow-up"></i></a>
     </div>
 </body>
 </html>
