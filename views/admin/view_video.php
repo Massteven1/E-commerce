@@ -218,7 +218,6 @@
                     <p class="video-description"><?php echo htmlspecialchars($video['description']); ?></p>
                 </div>
 
-                <!-- Aquí se añadirán los comentarios en el futuro -->
                 <div class="comments-section" style="background-color: #fff; border-radius: 10px; padding: 20px; box-shadow: var(--shadow);">
                     <h3>Comentarios</h3>
                     <p style="color: var(--dark-gray);">Los comentarios se implementarán próximamente.</p>
@@ -232,7 +231,11 @@
                         <?php foreach ($related_videos as $related): ?>
                             <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($related['id']); ?>" class="related-video-item">
                                 <div class="related-thumbnail">
-                                    <img src="https://i.imgur.com/xdbHo4E.png" alt="<?php echo htmlspecialchars($related['title']); ?>">
+                                    <?php if (!empty($related['thumbnail_image'])): ?>
+                                        <img src="/<?php echo htmlspecialchars($related['thumbnail_image']); ?>" alt="<?php echo htmlspecialchars($related['title']); ?>">
+                                    <?php else: ?>
+                                        <img src="https://i.imgur.com/xdbHo4E.png" alt="Miniatura por defecto">
+                                    <?php endif; ?>
                                     <div class="related-play-button">
                                         <i class="fas fa-play"></i>
                                     </div>
@@ -252,7 +255,6 @@
     </div>
 
     <script>
-        // Funcionalidad para minimizar/maximizar el video
         document.addEventListener('DOMContentLoaded', function() {
             const videoContainer = document.getElementById('videoContainer');
             const videoPlayer = document.getElementById('videoPlayer');
@@ -262,11 +264,9 @@
 
             function toggleMinimize() {
                 if (isMinimized) {
-                    // Maximizar
                     videoContainer.classList.remove('minimized');
                     toggleButton.innerHTML = '<i class="fas fa-compress"></i> Minimizar video';
                 } else {
-                    // Minimizar
                     videoContainer.classList.add('minimized');
                     toggleButton.innerHTML = '<i class="fas fa-expand"></i> Maximizar video';
                 }
@@ -276,11 +276,9 @@
             toggleButton.addEventListener('click', toggleMinimize);
             minimizeOverlay.addEventListener('click', toggleMinimize);
 
-            // Guardar la posición del video cuando se navega a otro video
             const links = document.querySelectorAll('.related-video-item');
             links.forEach(link => {
                 link.addEventListener('click', function(e) {
-                    // Guardar la posición actual del video en sessionStorage
                     sessionStorage.setItem('lastVideoTime', videoPlayer.currentTime);
                 });
             });

@@ -11,6 +11,7 @@
             cursor: pointer;
             overflow: hidden;
             border-radius: 8px;
+            display: block; /* Asegura que el enlace ocupe todo el espacio */
         }
         .video-thumbnail img {
             width: 100%;
@@ -37,7 +38,7 @@
         .play-button i {
             color: white;
             font-size: 24px;
-            margin-left: 4px; /* Ajuste para centrar visualmente el ícono de play */
+            margin-left: 4px;
         }
         .video-thumbnail:hover .play-button {
             background-color: var(--primary-color);
@@ -66,6 +67,10 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        .product-links {
+            display: flex;
+            gap: 10px; /* Espacio entre los iconos */
         }
     </style>
 </head>
@@ -108,10 +113,12 @@
                 <ul class="products-grid">
                     <?php foreach ($videos as $video): ?>
                         <li class="product-card">
-                            <!-- Reemplazamos el reproductor de video por una miniatura con botón de play -->
                             <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($video['id']); ?>" class="video-thumbnail">
-                                <!-- Usamos la primera imagen del video como miniatura (esto es simulado) -->
-                                <img src="https://i.imgur.com/xdbHo4E.png" alt="<?php echo htmlspecialchars($video['title']); ?>">
+                                <?php if (!empty($video['thumbnail_image'])): ?>
+                                    <img src="/<?php echo htmlspecialchars($video['thumbnail_image']); ?>" alt="<?php echo htmlspecialchars($video['title']); ?>">
+                                <?php else: ?>
+                                    <img src="https://i.imgur.com/xdbHo4E.png" alt="Miniatura por defecto">
+                                <?php endif; ?>
                                 <div class="play-button">
                                     <i class="fas fa-play"></i>
                                 </div>
@@ -120,6 +127,12 @@
                             <div class="product-details">
                                 <h4 class="video-title"><?php echo htmlspecialchars($video['title']); ?></h4>
                                 <p class="video-description"><?php echo htmlspecialchars($video['description']); ?></p>
+                                <div class="product-bottom-details">
+                                    <div class="product-links">
+                                        <a href="courses.php?controller=video&action=edit_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Editar Video"><i class="fa fa-edit"></i></a> <!-- Botón de editar video -->
+                                        <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Ver Video"><i class="fa fa-eye"></i></a>
+                                    </div>
+                                </div>
                             </div>
                         </li>
                     <?php endforeach; ?>
@@ -131,7 +144,7 @@
     </div>
 
     <div class="back-to-top">
-        <a href="courses.php?controller=playlist&action=index"><i class="fas fa-arrow-up"></i></a>
+        <a href="#"><i class="fas fa-arrow-up"></i></a>
     </div>
 </body>
 </html>

@@ -39,8 +39,15 @@
                 <form action="courses.php?controller=playlist&action=create" method="post" enctype="multipart/form-data" class="form-row">
                     <input type="text" name="name" placeholder="Nombre de la lista" required>
                     <textarea name="description" placeholder="Descripción"></textarea>
-                    <input type="number" name="price" placeholder="Precio del curso" step="0.01" min="0" required> <!-- Nuevo campo de precio -->
-                    <input type="file" name="cover_image" accept="image/jpeg" required>
+                    <input type="number" name="price" placeholder="Precio del curso" step="0.01" min="0" required>
+                    
+                    <!-- Nuevo: Etiqueta y aclaración para la imagen de portada de la lista -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="cover_image">Imagen de Portada de la Lista (JPG/JPEG)</label>
+                        <input type="file" id="cover_image" name="cover_image" accept="image/jpeg" required>
+                        <p style="font-size: 0.9em; color: var(--dark-gray); margin-top: 5px;">Sube una imagen (JPG/JPEG) que representará la lista de reproducción.</p>
+                    </div>
+
                     <button type="submit" class="btn-primary">Crear Lista</button>
                 </form>
             </div>
@@ -52,6 +59,13 @@
                     <input type="file" name="video" accept="video/mp4" required>
                     <input type="text" name="title" placeholder="Título del Video" required>
                     <textarea name="description" placeholder="Descripción"></textarea>
+                    
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="thumbnail_image">Miniatura del Video (Imagen de Portada)</label>
+                        <input type="file" id="thumbnail_image" name="thumbnail_image" accept="image/jpeg,image/png" required>
+                        <p style="font-size: 0.9em; color: var(--dark-gray); margin-top: 5px;">Sube una imagen (JPG, JPEG, PNG) que se mostrará como portada del video.</p>
+                    </div>
+
                     <select name="playlist_id" required>
                         <option value="">Seleccionar Lista</option>
                         <?php if (!empty($playlists)): ?>
@@ -78,7 +92,7 @@
                                 <?php if (!empty($playlist['cover_image'])): ?>
                                     <img src="/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
                                 <?php else: ?>
-                                    <img src="https://ih1.redbubble.net/image.4905811447.8675/flat,750x,075,f-pad,750x1000,f8f8f8.jpg" alt="Imagen por defecto">
+                                    <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
                                 <?php endif; ?>
                             </div>
                             <div class="product-details">
@@ -86,9 +100,9 @@
                                 <h4><a href="courses.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
                                 <p><?php echo htmlspecialchars($playlist['description'] ?: 'Sin descripción'); ?></p>
                                 <div class="product-bottom-details">
-                                    <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?></div> <!-- Muestra el precio -->
+                                    <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?></div>
                                     <div class="product-links">
-                                        <a href="courses.php?controller=playlist&action=edit&id=<?php echo htmlspecialchars($playlist['id']); ?>" title="Editar"><i class="fa fa-edit"></i></a> <!-- Botón de editar -->
+                                        <a href="courses.php?controller=playlist&action=edit&id=<?php echo htmlspecialchars($playlist['id']); ?>" title="Editar"><i class="fa fa-edit"></i></a>
                                         <a href="courses.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($playlist['id']); ?>" title="Ver Videos"><i class="fa fa-eye"></i></a>
                                     </div>
                                 </div>

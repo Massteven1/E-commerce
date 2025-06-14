@@ -36,8 +36,12 @@ switch ($controller) {
             $videoController->upload();
         } elseif ($action === 'view_playlist') {
             $videoController->viewPlaylist($id);
-        } elseif ($action === 'view_video') { // Nueva acción para ver un video individual
+        } elseif ($action === 'view_video') {
             $videoController->viewVideo($id);
+        } elseif ($action === 'edit_video' && $id) { // Nuevo: Acción para editar video
+            $videoController->editVideo($id);
+        } elseif ($action === 'update_video') { // Nuevo: Acción para actualizar video
+            $videoController->updateVideo();
         }
         break;
     default:

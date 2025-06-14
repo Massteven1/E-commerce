@@ -41,16 +41,17 @@
                 <textarea name="description" placeholder="Descripción"><?php echo htmlspecialchars($playlist['description']); ?></textarea>
                 <input type="number" name="price" placeholder="Precio del curso" step="0.01" min="0" value="<?php echo htmlspecialchars($playlist['price']); ?>" required>
 
-                <div style="grid-column: 1 / -1;">
-                    <label for="current_cover_image">Imagen de portada actual:</label>
+                <!-- Nuevo: Etiqueta y aclaración para la imagen de portada de la lista -->
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="cover_image">Imagen de Portada de la Lista (JPG/JPEG)</label>
                     <?php if (!empty($playlist['cover_image'])): ?>
                         <img id="current_cover_image" src="/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada actual" style="max-width: 200px; height: auto; display: block; margin-top: 10px; border-radius: 5px;">
                     <?php else: ?>
                         <p>No hay imagen de portada actual.</p>
                     <?php endif; ?>
+                    <input type="file" id="cover_image" name="cover_image" accept="image/jpeg">
+                    <p style="font-size: 0.9em; color: var(--dark-gray); margin-top: 5px;">Sube una nueva imagen (JPG/JPEG) para la portada de la lista. Deja vacío para mantener la actual.</p>
                 </div>
-                <input type="file" name="cover_image" accept="image/jpeg">
-                <p style="grid-column: 1 / -1; font-size: 0.9em; color: var(--dark-gray);">Deja este campo vacío para mantener la imagen actual.</p>
 
                 <button type="submit" class="btn-primary" style="grid-column: 1 / -1;">Actualizar Lista</button>
             </form>
