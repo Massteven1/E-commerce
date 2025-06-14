@@ -3,6 +3,14 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
+
+// Verificar si el usuario está logueado y es administrador
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    // Si no es admin, redirigir al login
+    header('Location: ../../login.html?error=access_denied');
+    exit();
+}
+
 // Función simple para cargar controladores
 function loadController($name) {
     $file = __DIR__ . "/../../controllers/{$name}Controller.php";

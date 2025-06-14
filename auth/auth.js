@@ -50,11 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const currentPage = window.location.pathname
 
         // Redirigir a auth_callback.php para que el backend establezca la sesión PHP
-        if (
-          currentPage.includes("login.html") ||
-          currentPage.includes("signup.html") ||
-          currentPage.includes("admin_login.html")
-        ) {
+        if (currentPage.includes("login.html") || currentPage.includes("signup.html")) {
           window.location.href = `auth_callback.php?idToken=${idToken}`
         }
       } catch (error) {
@@ -66,9 +62,8 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       // Si el usuario no está logueado, y está en una página protegida, redirigir a login
       const currentPage = window.location.pathname
-      if (currentPage.includes("courses.php") && !currentPage.includes("admin_login.html")) {
-        // Solo redirigir si no es la página de login de admin
-        window.location.href = "admin_login.html"
+      if (currentPage.includes("courses.php")) {
+        window.location.href = "login.html"
       }
     }
   })

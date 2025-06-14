@@ -38,7 +38,7 @@ if (isset($_GET['idToken'])) {
             
             // Redirigir según el rol
             if ($user['role'] === 'admin') {
-                header('Location: courses.php?controller=admin&action=dashboard');
+                header('Location: views/admin/courses.php?controller=admin&action=dashboard');
             } else {
                 header('Location: index.php');
             }
