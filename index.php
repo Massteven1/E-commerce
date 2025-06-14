@@ -1,15 +1,80 @@
 <?php
-// Incluir las clases necesarias para la base de datos y el modelo de Playlist
+// Iniciar la sesión al principio de todo
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Incluir las clases necesarias para la base de datos y los modelos
 require_once __DIR__ . '/config/Database.php';
 require_once __DIR__ . '/models/Playlist.php';
+require_once __DIR__ . '/controllers/CartController.php';
 
-// Inicializar la conexión a la base de datos y el modelo de Playlist
-$database = new Database();
-$db = $database->getConnection();
-$playlistModel = new Playlist($db);
+// Función para cargar controladores
+function loadController($name) {
+    $file = __DIR__ . "/controllers/{$name}Controller.php";
+    if (file_exists($file)) {
+        require_once $file;
+        return true;
+    }
+    return false;
+}
 
-// Obtener todas las listas de reproducción
-$playlists = $playlistModel->readAll();
+// Obtener el controlador y la acción de la URL
+$controller = $_GET['controller'] ?? 'home';
+$action = $_GET['action'] ?? 'index';
+
+$id = $_GET['id'] ?? null;
+$param = $_GET['param'] ?? null;
+
+// Iniciar el buffer de salida para capturar el contenido de la vista
+ob_start();
+
+// Enrutamiento
+try {
+    switch ($controller) {
+        case 'home':
+            $database = new Database();
+            $db = $database->getConnection();
+            $playlistModel = new Playlist($db);
+            $playlists = $playlistModel->readAll();
+            require_once __DIR__ . '/views/client/home.php'; // Carga la nueva vista de inicio
+            break;
+
+        case 'cart':
+            $cartController = new CartController();
+            switch ($action) {
+                case 'add':
+                    if ($id) $cartController->add($id);
+                    break;
+                case 'remove':
+                    if ($id) $cartController->remove($id);
+                    break;
+                case 'apply_promo':
+                    $cartController->applyPromoCode($_POST['promo_code'] ?? '');
+                    break;
+                case 'checkout':
+                    $cartController->checkout();
+                    break;
+                case 'view':
+                    $cartController->view();
+                    break;
+                default:
+                    $cartController->view();
+            }
+            break;
+
+        default:
+            // Redirigir a la página principal si el controlador no es reconocido
+            header('Location: index.php');
+            exit();
+    }
+} catch (Exception $e) {
+    // Manejo de errores general
+    die("Error en la aplicación: " . $e->getMessage());
+}
+
+// Capturar el contenido de la vista
+$view_content = ob_get_clean();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,38 +83,59 @@ $playlists = $playlistModel->readAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>El Profesor Hernan</title>
     <link rel="stylesheet" href="public/css/styles.css">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
     <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-
+    <style>
+        /* Estilo para el badge del carrito */
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            background-color: var(--red-color);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7em;
+            font-weight: bold;
+            line-height: 1;
+            min-width: 18px;
+            text-align: center;
+        }
+        .cart {
+            position: relative;
+        }
+    </style>
 </head>
-
 <body>
     <!-- Header Section -->
     <header>
         <div class="container">
             <div class="logo">
                 <div class="logo-circle">
-                    <img src="public/img/logo-profe-hernan.png" alt="Logo"> <!-- TODO: Make the logo bigger and add a hover effect -->
+                    <img src="img/logo-profe-hernan.png" alt="Logo">
                 </div>
             </div>
-            <div class="search-bar"> <!-- FIXME: serach bar responsive -->
-                <input type="text" placeholder="Search">
+            <div class="search-bar">
+                <input type="text" placeholder="Buscar">
                 <i class="fas fa-search"></i>
             </div>
             <nav>
                 <ul>
-                    <!-- TODO: Add links to other pages -->
                     <li><a href="login.html">login</a></li>
-                    <li><a href="#">Courses</a></li>
+                    <li><a href="index.php">Cursos</a></li>
                     <li><a href="#">Sales</a></li>
                     <li><a href="#">Contact</a></li>
                 </ul>
                 <div class="cart">
-                    <i class="fas fa-shopping-cart"></i> <!-- TODO: Add a badge with the number of items in the cart -->
+                    <a href="index.php?controller=cart&action=view"><i class="fas fa-shopping-cart"></i></a>
+                    <?php 
+                        $cart_item_count = count($_SESSION['cart'] ?? []);
+                        if ($cart_item_count > 0) {
+                            echo '<span class="cart-badge">' . $cart_item_count . '</span>';
+                        }
+                    ?>
                 </div>
                 <div class="logout" id="logoutBtn">
                     <i class="fas fa-sign-out-alt"></i>
@@ -58,223 +144,10 @@ $playlists = $playlistModel->readAll();
         </div>
     </header>
 
-    <!-- Banner Section -->
-    <section class="banner">
-        <div class="container">
-            <div class="banner-content">
-                <h1>Learn English as a Second Language</h1>
-                <p>education, bilingualism and communication</p>
-                <div class="banner-buttons">
-                    <button class="btn-primary">SHOP ALL</button>
-                    <button class="btn-secondary">ALL PRODUCTS</button>
-                </div>
-            </div>
-            <div class="banner-image">
-                <div class="image-container">
-                    <img src="public/img/hero-image.png?height=300&width=300" alt="Person teaching">
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Best Sellers Section -->
-    <section class="best-sellers">
-        <div class="container">
-            <h2>Nuestras Listas de Reproducción</h2>
-
-            <!-- Products Grid: Product Cards (Ahora dinámico con playlists) -->
-            <div class="products-grid">
-                <?php if (!empty($playlists)): ?>
-                    <?php foreach ($playlists as $playlist): ?>
-                        <div class="product-card">
-                            <div class="product-tumb">
-                                <?php if (!empty($playlist['cover_image'])): ?>
-                                    <!-- La ruta de la imagen es relativa a la raíz del proyecto -->
-                                    <img src="<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
-                                <?php else: ?>
-                                    <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
-                                <?php endif; ?>
-                            </div>
-                            <div class="product-details">
-                                <span class="product-catagory">Lista de Reproducción</span>
-                                <!-- El título no es un enlace para evitar el acceso directo a los videos -->
-                                <h4><?php echo htmlspecialchars($playlist['name']); ?></h4>
-                                <p><?php echo htmlspecialchars($playlist['description'] ?: 'Sin descripción'); ?></p>
-                                <div class="product-bottom-details">
-                                    <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?></div>
-                                    <!-- No se muestran enlaces de edición/eliminación aquí -->
-                                    <div class="product-links">
-                                        <!-- Puedes añadir un botón de "Ver detalles" o "Añadir al carrito" aquí si lo deseas, sin que lleve a los videos directamente -->
-                                        <a href="#" class="btn-primary" style="padding: 8px 15px; font-size: 0.9em;">Ver Detalles</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <p style="text-align: center; color: var(--dark-gray); grid-column: 1 / -1;">No hay listas de reproducción disponibles en este momento.</p>
-                <?php endif; ?>
-            </div>
-
-            <!-- Sort Options -->
-            <div class="sort-options">
-                <span>Ordenar por:</span>
-                <button class="sort-btn active">Novedades</button>
-                <button class="sort-btn">Ofertas</button>
-                <button class="sort-btn">Todos los artículos</button>
-            </div>
-
-            <!-- View More Button -->
-             <!-- TODO: Add a function to view more products -->
-            <div class="view-more">
-                <a href="#">Ver Todos los Productos <i class="fas fa-arrow-right"></i></a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Courses Section: Course Packs -->
-    <section class="courses">
-        <div class="container">
-            <h2>Cursos por Nivel</h2>
-
-            <div class="courses-grid">
-                
-                <!-- A1 -->
-                <div class="course-card">
-                    <div class="level-badge neon-glow orange">A1</div>
-                    <div class="course-icon"><i class="fas fa-book"></i></div>
-                    <h3 class="course-title">BÁSICO</h3>
-                    <p class="course-subtitle">Nivel Básico</p>
-                    <p class="course-price">$55 <span class="original-price">$70</span> <span class="discount">-22%</span></p>
-                </div>
-                
-                <!-- A2 -->
-                <div class="course-card">
-                    <div class="level-badge neon-glow red">A2</div>
-                    <div class="course-icon"><i class="fas fa-comments"></i></div>
-                    <h3 class="course-title">PRE INTERMEDIO</h3>
-                    <p class="course-subtitle">Nivel Pre Intermedio</p>
-                    <p class="course-price">$55</p>
-                </div>
-                
-                <!-- B1 -->
-                <div class="course-card">
-                    <div class="level-badge neon-glow blue">B1</div>
-                    <div class="course-icon"><i class="fas fa-pen"></i></div>
-                    <h3 class="course-title">INTERMEDIO</h3>
-                    <p class="course-subtitle">Nivel Intermedio</p>
-                    <p class="course-price">$55</p>
-                </div>
-                
-                <!-- B2 -->
-                <div class="course-card">
-                    <div class="level-badge neon-glow teal">B2</div>
-                    <div class="course-icon"><i class="fas fa-microphone"></i></div>
-                    <h3 class="course-title">INTERMEDIO ALTO</h3>
-                    <p class="course-subtitle">Nivel Intermedio Alto</p>
-                    <p class="course-price">$55</p>
-                </div>
-                
-                <!-- C1 -->
-                <div class="course-card">
-                    <div class="level-badge neon-glow purple">C1</div>
-                    <div class="course-icon"><i class="fas fa-graduation-cap"></i></div>
-                    <h3 class="course-title">AVANZADO</h3>
-                    <p class="course-subtitle">Nivel Avanzado</p>
-                    <p class="course-price">$55</p>
-                </div>
-            </div>
-            
-            <!-- View More Button -->
-             <!-- TODO: Add a function to view more products -->
-            <div class="view-more">
-                <a href="#">EXPLORAR TODOS LOS PRODUCTOS <i class="fas fa-arrow-right"></i></a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Promo Box Section -->
-    <section class="promo-box">
-        <div class="container">
-            <p class="promo-label">OFERTA</p>
-            <h2 class="promo-title">30% DE DESCUENTO</h2>
-            <div class="promo-levels">
-                <div class="promo-level orange">
-                    <div class="level-badge neon-glow">A1</div>
-                    <span>Nivel Básico</span>
-                </div>
-                <div class="promo-level red">
-                    <div class="level-badge neon-glow">A2</div>
-                    <span>Pre Intermedio</span>
-                </div>
-                <div class="promo-level blue">
-                    <div class="level-badge neon-glow">B1</div>
-                    <span>Intermedio</span>
-                </div>
-                <div class="promo-level teal">
-                    <div class="level-badge neon-glow">B2</div>
-                    <span>Intermedio Alto</span>
-                </div>
-                <div class="promo-level purple">
-                    <div class="level-badge neon-glow">C1</div>
-                    <span>Avanzado</span>
-                </div>
-            </div>
-
-            <!-- Shop Now Button -->
-             <!-- TODO: Add a function to shop now -->
-            <a href="#" class="promo-link">COMPRAR AHORA</a>
-        </div>
-    </section>
-
-    <!-- Contact Form Section -->
-    <section class="contact">
-        <div class="container">
-            <div class="contact-form">
-                <h2>ENVÍA TU CONSULTA</h2>
-                <form>
-                    <div class="form-group">
-                        <label for="name">Tu nombre</label>
-                        <input type="text" id="name" placeholder="Nombre">
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Tu correo electrónico</label>
-                        <input type="email" id="email" placeholder="Correo electrónico">
-                    </div>
-                    <div class="form-group">
-                        <label for="message">Tu mensaje</label>
-                        <textarea id="message" placeholder="Mensaje"></textarea>
-                    </div>
-                    <button type="submit" class="btn-primary">Enviar</button>
-                </form>
-            </div>
-            <div class="contact-info">
-                <div class="info-item">
-                    <div class="icon">
-                        <i class="fas fa-envelope"></i>
-                    </div>
-                    <div class="text">
-                        <h3>CORREO ELECTRÓNICO</h3>
-                        <p>info@professionalcomunidad.com</p>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <div class="icon">
-                        <i class="fas fa-phone"></i>
-                    </div>
-                    <div class="text">
-                        <h3>LLAMAR</h3>
-                        <p>+57 123 456 789</p>
-                        <p>+57 234 567 890</p>
-                        <p>+57 345 678 901</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    <!-- Main Content Area -->
+    <?php echo $view_content; ?>
 
     <!-- Back to Top Button -->
-     <!-- TODO: Smooth scroll to top -->
     <div class="back-to-top">
         <a href="#"><i class="fas fa-arrow-up"></i></a>
     </div>
