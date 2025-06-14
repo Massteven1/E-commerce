@@ -1,3 +1,14 @@
+<?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Protección de ruta: Redirigir si no es admin
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: ../../admin_login.html'); // Redirige a la página de login de admin
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -29,7 +40,7 @@
                     <li><a href="courses.php?controller=playlist&action=index">Courses</a></li>
                     <li><a href="#">Reports</a></li>
                 </ul>
-                <a href="#" class="logout">
+                <a href="#" class="logout" id="logoutBtn">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
             </nav>
@@ -127,5 +138,7 @@
         <i class="fas fa-arrow-up"></i>
     </a>
 
+    <script src="../../auth/firebase-config.js"></script>
+    <script src="../../auth/auth.js"></script>
 </body>
 </html>

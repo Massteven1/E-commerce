@@ -139,10 +139,20 @@ $view_content = ob_get_clean();
             </div>
             <nav>
                 <ul>
-                    <li><a href="login.html">login</a></li>
-                    <li><a href="index.php">Cursos</a></li>
-                    <li><a href="#">Sales</a></li>
-                    <li><a href="#">Contact</a></li>
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <li><a href="index.php">Cursos</a></li>
+                        <li><a href="#">Sales</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                            <li><a href="courses.php?controller=admin&action=dashboard">Admin Panel</a></li>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <li><a href="login.html">Login</a></li>
+                        <li><a href="signup.html">Registro</a></li>
+                        <li><a href="index.php">Cursos</a></li>
+                        <li><a href="#">Sales</a></li>
+                        <li><a href="#">Contact</a></li>
+                    <?php endif; ?>
                 </ul>
                 <div class="cart">
                     <a href="index.php?controller=cart&action=view"><i class="fas fa-shopping-cart"></i></a>
@@ -153,9 +163,11 @@ $view_content = ob_get_clean();
                         }
                     ?>
                 </div>
-                <div class="logout" id="logoutBtn">
-                    <i class="fas fa-sign-out-alt"></i>
-                </div>
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <div class="logout" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                <?php endif; ?>
             </nav>
         </div>
     </header>

@@ -1,3 +1,14 @@
+<?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Protección de ruta: Redirigir si no es admin
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: ../../admin_login.html'); // Redirige a la página de login de admin
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -397,7 +408,7 @@
                     <li><a href="courses.php?controller=admin&action=dashboard">Dashboard</a></li>
                     <li><a href="courses.php?controller=playlist&action=index">Cursos</a></li>
                     <li><a href="#">Configuración</a></li>
-                    <li class="logout"><i class="fas fa-sign-out-alt"></i></li>
+                    <li class="logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></li>
                 </ul>
             </nav>
         </div>
@@ -865,6 +876,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
     </script>
 
+    <script src="../../auth/firebase-config.js"></script>
+    <script src="../../auth/auth.js"></script>
     <div class="back-to-top">
         <a href="#"><i class="fas fa-arrow-up"></i></a>
     </div>
