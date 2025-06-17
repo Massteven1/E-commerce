@@ -2,8 +2,6 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,16 +16,18 @@ if (session_status() == PHP_SESSION_NONE) {
         <div class="container">
             <div class="logo">
                 <div class="logo-circle" style="background-color: var(--primary-color);">V</div>
-                <span style="margin-left: 10px; font-weight: 600;">Video Admin</span>
+                <span>Video Admin</span>
             </div>
             <nav>
                 <ul>
-                    <li><a href="courses.php?controller=admin&action=dashboard">Dashboard</a></li>
-                    <li><a href="courses.php?controller=playlist&action=index">Cursos</a></li>
+                    <li><a href="index.php?controller=admin&action=dashboard">Dashboard</a></li>
+                    <li><a href="index.php?controller=playlist&action=index">Cursos</a></li>
                     <li><a href="#">Configuración</a></li>
-                    <li class="logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></li>
                 </ul>
             </nav>
+            <button class="logout" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
         </div>
     </header>
 
@@ -41,7 +41,7 @@ if (session_status() == PHP_SESSION_NONE) {
     <div class="container">
         <div class="checkout-section">
             <h2>Formulario de Edición</h2>
-            <form action="courses.php?controller=video&action=update_video" method="post" enctype="multipart/form-data" class="form-row">
+            <form action="index.php?controller=video&action=update_video" method="post" enctype="multipart/form-data" class="form-row">
                 <input type="hidden" name="id" value="<?php echo htmlspecialchars($video['id']); ?>">
 
                 <input type="text" name="title" placeholder="Título del Video" value="<?php echo htmlspecialchars($video['title']); ?>" required>
@@ -58,11 +58,10 @@ if (session_status() == PHP_SESSION_NONE) {
                     <?php endif; ?>
                 </select>
 
-                <!-- Nuevo: Etiqueta y aclaración para la miniatura del video -->
                 <div class="form-group" style="grid-column: 1 / -1;">
                     <label for="thumbnail_image">Miniatura del Video (Imagen de Portada)</label>
                     <?php if (!empty($video['thumbnail_image'])): ?>
-                        <img id="current_thumbnail_image" src="/<?php echo htmlspecialchars($video['thumbnail_image']); ?>" alt="Miniatura actual" style="max-width: 200px; height: auto; display: block; margin-top: 10px; border-radius: 5px;">
+                        <img src="../../<?php echo htmlspecialchars($video['thumbnail_image']); ?>" alt="Miniatura actual" style="max-width: 200px; height: auto; display: block; margin-top: 10px; border-radius: 5px;">
                     <?php else: ?>
                         <p>No hay miniatura actual.</p>
                     <?php endif; ?>
@@ -76,7 +75,7 @@ if (session_status() == PHP_SESSION_NONE) {
     </div>
 
     <div class="back-to-top">
-        <a href="courses.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($video['playlist_id']); ?>"><i class="fas fa-arrow-up"></i></a>
+        <a href="index.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($video['playlist_id']); ?>"><i class="fas fa-arrow-up"></i></a>
     </div>
 
     <script src="../../auth/firebase-config.js"></script>

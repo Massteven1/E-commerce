@@ -181,7 +181,7 @@ class VideoController {
     }
 
     private function redirect($controller, $action, $id = null) {
-        $url = "courses.php?controller={$controller}&action={$action}";
+        $url = "index.php?controller={$controller}&action={$action}";
         if ($id) $url .= "&id={$id}";
         header("Location: {$url}");
         exit();

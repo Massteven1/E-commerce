@@ -2,8 +2,6 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -75,10 +73,6 @@ if (session_status() == PHP_SESSION_NONE) {
           overflow: hidden;
           text-overflow: ellipsis;
       }
-      .product-links {
-          display: flex;
-          gap: 10px;
-      }
   </style>
 </head>
 <body>
@@ -86,22 +80,24 @@ if (session_status() == PHP_SESSION_NONE) {
         <div class="container">
             <div class="logo">
                 <div class="logo-circle" style="background-color: var(--primary-color);">V</div>
-                <span style="margin-left: 10px; font-weight: 600;">Video Admin</span>
+                <span>Video Admin</span>
             </div>
             <nav>
                 <ul>
-                    <li><a href="courses.php?controller=admin&action=dashboard">Dashboard</a></li>
-                    <li><a href="courses.php?controller=playlist&action=index">Cursos</a></li>
+                    <li><a href="index.php?controller=admin&action=dashboard">Dashboard</a></li>
+                    <li><a href="index.php?controller=playlist&action=index">Cursos</a></li>
                     <li><a href="#">Configuración</a></li>
-                    <li class="logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></li>
                 </ul>
             </nav>
+            <button class="logout" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
         </div>
     </header>
 
     <div class="container">
         <div class="checkout-section">
-            <a href="courses.php?controller=playlist&action=index" style="display: inline-flex; align-items: center; gap: 5px; margin-bottom: 20px; color: var(--primary-color); font-weight: 500;">
+            <a href="index.php?controller=playlist&action=index" style="display: inline-flex; align-items: center; gap: 5px; margin-bottom: 20px; color: var(--primary-color); font-weight: 500;">
                 <i class="fas fa-arrow-left"></i> Volver a Listas
             </a>
             <?php if (isset($playlist['cover_image']) && !empty($playlist['cover_image'])): ?>
@@ -120,7 +116,7 @@ if (session_status() == PHP_SESSION_NONE) {
                 <ul class="products-grid">
                     <?php foreach ($videos as $video): ?>
                         <li class="product-card">
-                            <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($video['id']); ?>" class="video-thumbnail">
+                            <a href="index.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($video['id']); ?>" class="video-thumbnail">
                                 <?php if (!empty($video['thumbnail_image'])): ?>
                                     <img src="../../<?php echo htmlspecialchars($video['thumbnail_image']); ?>" alt="<?php echo htmlspecialchars($video['title']); ?>">
                                 <?php else: ?>
@@ -136,10 +132,9 @@ if (session_status() == PHP_SESSION_NONE) {
                                 <p class="video-description"><?php echo htmlspecialchars($video['description']); ?></p>
                                 <div class="product-bottom-details">
                                     <div class="product-links">
-                                        <a href="courses.php?controller=video&action=edit_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Editar Video"><i class="fa fa-edit"></i></a>
-                                        <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Ver Video"><i class="fa fa-eye"></i></a>
-                                        <!-- Nuevo: Botón de eliminar video -->
-                                        <a href="courses.php?controller=video&action=delete_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Eliminar Video" onclick="return confirm('¿Estás seguro de que quieres eliminar este video? Esta acción es irreversible.');"><i class="fa fa-trash-alt" style="color: var(--red-color);"></i></a>
+                                        <a href="index.php?controller=video&action=edit_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Editar Video"><i class="fa fa-edit"></i></a>
+                                        <a href="index.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Ver Video"><i class="fa fa-eye"></i></a>
+                                        <a href="index.php?controller=video&action=delete_video&id=<?php echo htmlspecialchars($video['id']); ?>" title="Eliminar Video" onclick="return confirm('¿Estás seguro de que quieres eliminar este video? Esta acción es irreversible.');"><i class="fa fa-trash-alt" style="color: var(--red-color);"></i></a>
                                     </div>
                                 </div>
                             </div>
@@ -153,7 +148,7 @@ if (session_status() == PHP_SESSION_NONE) {
     </div>
 
     <div class="back-to-top">
-        <a href="courses.php?controller=playlist&action=index"><i class="fas fa-arrow-up"></i></a>
+        <a href="index.php?controller=playlist&action=index"><i class="fas fa-arrow-up"></i></a>
     </div>
 
     <script src="../../auth/firebase-config.js"></script>

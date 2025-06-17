@@ -8,8 +8,9 @@ if (session_status() == PHP_SESSION_NONE) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Login - El Profesor Hernán</title>
+    <title>Test Admin Login - El Profesor Hernán</title>
     <link rel="stylesheet" href="../../public/css/styles.css">
+    <link rel="stylesheet" href="../../public/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .test-container {
@@ -26,8 +27,8 @@ if (session_status() == PHP_SESSION_NONE) {
             color: var(--primary-color);
             margin-bottom: 20px;
         }
-        .user-badge {
-            background: linear-gradient(135deg, var(--blue-color), var(--teal-color));
+        .admin-badge {
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
             color: white;
             padding: 10px 20px;
             border-radius: 25px;
@@ -56,11 +57,11 @@ if (session_status() == PHP_SESSION_NONE) {
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .btn-primary {
+        .btn-admin {
             background-color: var(--primary-color);
             color: white;
         }
-        .btn-primary:hover {
+        .btn-admin:hover {
             background-color: var(--purple-color);
             transform: translateY(-2px);
         }
@@ -77,27 +78,27 @@ if (session_status() == PHP_SESSION_NONE) {
 <body>
     <div class="test-container">
         <div class="success-icon">
-            <i class="fas fa-user-check"></i>
+            <i class="fas fa-shield-alt"></i>
         </div>
         
-        <h1>¡Login Exitoso!</h1>
-        <div class="user-badge">
-            <i class="fas fa-user"></i> USUARIO
+        <h1>¡Login de Administrador Exitoso!</h1>
+        <div class="admin-badge">
+            <i class="fas fa-crown"></i> ADMINISTRADOR
         </div>
         
-        <p>Has iniciado sesión correctamente en la plataforma.</p>
+        <p>Has iniciado sesión correctamente como administrador del sistema.</p>
         
         <div class="user-info">
             <h3>Información del Usuario</h3>
             <p><strong>Email:</strong> <span id="userEmail">Cargando...</span></p>
             <p><strong>Nombre:</strong> <span id="userName">Cargando...</span></p>
             <p><strong>UID:</strong> <span id="userUID">Cargando...</span></p>
-            <p><strong>Rol:</strong> <span style="color: var(--blue-color); font-weight: 600;">Usuario</span></p>
+            <p><strong>Rol:</strong> <span style="color: var(--primary-color); font-weight: 600;">Administrador</span></p>
         </div>
         
         <div class="action-buttons">
-            <a href="../../index.php" class="btn btn-primary">
-                <i class="fas fa-home"></i> Ir a la Tienda
+            <a href="../admin/index.php?controller=admin&action=dashboard" class="btn btn-admin">
+                <i class="fas fa-tachometer-alt"></i> Ir al Panel de Admin
             </a>
             <button id="logoutBtn" class="btn btn-logout">
                 <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
@@ -105,21 +106,25 @@ if (session_status() == PHP_SESSION_NONE) {
         </div>
     </div>
 
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="../../auth/firebase-config.js"></script>
     
     <script>
+        // Verificar autenticación y mostrar información del usuario
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 document.getElementById('userEmail').textContent = user.email || 'No disponible';
                 document.getElementById('userName').textContent = user.displayName || 'No disponible';
                 document.getElementById('userUID').textContent = user.uid || 'No disponible';
             } else {
+                // Si no hay usuario, redirigir al login
                 window.location.href = '../../login.php';
             }
         });
 
+        // Funcionalidad de logout
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             try {
                 await firebase.auth().signOut();

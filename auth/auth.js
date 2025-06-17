@@ -8,6 +8,18 @@ const facebookProvider = new firebase.auth.FacebookAuthProvider();
 // Elementos del DOM
 const loadingOverlay = document.getElementById("loadingOverlay");
 
+// UID del administrador
+const ADMIN_UID = "wqHy552UarPFC9xctKNk8vKInLy1"
+
+// Función para redirigir según el tipo de usuario
+function redirectUser(user) {
+  if (user.uid === ADMIN_UID) {
+    window.location.href = "views/admin/test-admin-login.php"
+  } else {
+    window.location.href = "views/client/test-admin-login.php"
+  }
+}
+
 // Verificar si el usuario ya está logueado
 document.addEventListener("DOMContentLoaded", () => {
   auth.onAuthStateChanged((user) => {

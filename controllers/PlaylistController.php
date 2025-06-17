@@ -26,7 +26,7 @@ class PlaylistController {
 
   public function index() {
       $playlists = $this->playlistModel->readAll();
-      require_once __DIR__ . '/../views/admin/index.php';
+      require_once __DIR__ . '/../views/admin/courses.php'; // Cambiado de index.php a courses.php
   }
 
   public function create() {
@@ -170,7 +170,7 @@ class PlaylistController {
   }
 
   private function redirect($controller, $action, $id = null, $isAdmin = false) {
-      $base_url = $isAdmin ? "courses.php" : "index.php";
+      $base_url = $isAdmin ? "index.php" : "index.php";
       $url = "{$base_url}?controller={$controller}&action={$action}";
       if ($id) $url .= "&id={$id}";
       header("Location: {$url}");

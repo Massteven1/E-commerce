@@ -2,8 +2,6 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,16 +16,18 @@ if (session_status() == PHP_SESSION_NONE) {
         <div class="container">
             <div class="logo">
                 <div class="logo-circle" style="background-color: var(--primary-color);">V</div>
-                <span style="margin-left: 10px; font-weight: 600;">Video Admin</span>
+                <span>Video Admin</span>
             </div>
             <nav>
                 <ul>
-                    <li><a href="courses.php?controller=admin&action=dashboard">Dashboard</a></li>
-                    <li><a href="courses.php?controller=playlist&action=index">Cursos</a></li>
+                    <li><a href="index.php?controller=admin&action=dashboard">Dashboard</a></li>
+                    <li><a href="index.php?controller=playlist&action=index">Cursos</a></li>
                     <li><a href="#">Configuración</a></li>
-                    <li class="logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></li>
                 </ul>
             </nav>
+            <button class="logout" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
         </div>
     </header>
 
@@ -41,13 +41,12 @@ if (session_status() == PHP_SESSION_NONE) {
     <div class="container">
         <div class="checkout-section">
             <h2>Formulario de Edición</h2>
-            <form action="courses.php?controller=playlist&action=update" method="post" enctype="multipart/form-data" class="form-row">
+            <form action="index.php?controller=playlist&action=update" method="post" enctype="multipart/form-data" class="form-row">
                 <input type="hidden" name="id" value="<?php echo htmlspecialchars($playlist['id']); ?>">
 
                 <input type="text" name="name" placeholder="Nombre de la lista" value="<?php echo htmlspecialchars($playlist['name']); ?>" required>
                 <textarea name="description" placeholder="Descripción"><?php echo htmlspecialchars($playlist['description']); ?></textarea>
                 
-                <!-- Campo de nivel -->
                 <select name="level" required>
                     <option value="">Seleccionar Nivel</option>
                     <option value="A1" <?php echo ($playlist['level'] == 'A1') ? 'selected' : ''; ?>>A1 - Básico</option>
@@ -63,7 +62,7 @@ if (session_status() == PHP_SESSION_NONE) {
                 <div class="form-group" style="grid-column: 1 / -1;">
                     <label for="cover_image">Imagen de Portada de la Lista (JPG/JPEG)</label>
                     <?php if (!empty($playlist['cover_image'])): ?>
-                        <img id="current_cover_image" src="/<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada actual" style="max-width: 200px; height: auto; display: block; margin-top: 10px; border-radius: 5px;">
+                        <img src="../../<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="Portada actual" style="max-width: 200px; height: auto; display: block; margin-top: 10px; border-radius: 5px;">
                     <?php else: ?>
                         <p>No hay imagen de portada actual.</p>
                     <?php endif; ?>
@@ -77,7 +76,7 @@ if (session_status() == PHP_SESSION_NONE) {
     </div>
 
     <div class="back-to-top">
-        <a href="courses.php?controller=playlist&action=index"><i class="fas fa-arrow-up"></i></a>
+        <a href="index.php?controller=playlist&action=index"><i class="fas fa-arrow-up"></i></a>
     </div>
 
     <script src="../../auth/firebase-config.js"></script>

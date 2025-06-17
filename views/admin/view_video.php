@@ -400,8 +400,8 @@ if (session_status() == PHP_SESSION_NONE) {
             </div>
             <nav>
                 <ul>
-                    <li><a href="courses.php?controller=admin&action=dashboard">Dashboard</a></li>
-                    <li><a href="courses.php?controller=playlist&action=index">Cursos</a></li>
+                    <li><a href="index.php?controller=admin&action=dashboard">Dashboard</a></li>
+                    <li><a href="index.php?controller=playlist&action=index">Cursos</a></li>
                     <li><a href="#">Configuración</a></li>
                     <li class="logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></li>
                 </ul>
@@ -411,7 +411,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
     <div class="container">
         <div class="video-controls">
-            <a href="courses.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="control-button">
+            <a href="index.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="control-button">
                 <i class="fas fa-arrow-left"></i> Volver a la playlist
             </a>
             <button id="toggleMinimize" class="control-button">
@@ -498,7 +498,7 @@ if (session_status() == PHP_SESSION_NONE) {
                     <h3>Videos relacionados</h3>
                     <?php if (!empty($related_videos)): ?>
                         <?php foreach ($related_videos as $related): ?>
-                            <a href="courses.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($related['id']); ?>" class="related-video-item">
+                            <a href="index.php?controller=video&action=view_video&id=<?php echo htmlspecialchars($related['id']); ?>" class="related-video-item">
                                 <div class="related-thumbnail">
                                     <?php if (!empty($related['thumbnail_image'])): ?>
                                         <!-- Corregir la ruta: usar ruta relativa desde la vista -->
