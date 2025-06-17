@@ -77,8 +77,5 @@ if (session_status() == PHP_SESSION_NONE) {
     <div class="back-to-top">
         <a href="index.php?controller=video&action=view_playlist&id=<?php echo htmlspecialchars($video['playlist_id']); ?>"><i class="fas fa-arrow-up"></i></a>
     </div>
-
-    <script src="../../auth/firebase-config.js"></script>
-    <script src="../../auth/auth.js"></script>
 </body>
 </html>

@@ -875,8 +875,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
     </script>
 
-    <script src="../../auth/firebase-config.js"></script>
-    <script src="../../auth/auth.js"></script>
     <div class="back-to-top">
         <a href="#"><i class="fas fa-arrow-up"></i></a>
     </div>

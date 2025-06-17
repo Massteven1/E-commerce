@@ -79,7 +79,5 @@ if (session_status() == PHP_SESSION_NONE) {
         <a href="index.php?controller=playlist&action=index"><i class="fas fa-arrow-up"></i></a>
     </div>
 
-    <script src="../../auth/firebase-config.js"></script>
-    <script src="../../auth/auth.js"></script>
 </body>
 </html>
