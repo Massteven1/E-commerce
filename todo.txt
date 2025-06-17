@@ -1,3 +1,6 @@
 1. Arreglar el inicio de sesion con Facebook
 2. Arreglar el inicio de sesion con Google
 3. Agregar el uso de Paypal.
+4. Verificar la funcionalidad con Stripe
+
+NOTA: RECORDAR HACER PRIVADO EL ROPOSITORIO AL ACABAR. (Las claves de testo están expuestas)
