@@ -1,3 +1,12 @@
+<?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
+    header('Location: index.php');
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -19,7 +28,7 @@
             </div>
             <nav>
                 <ul>
-                    <li><a href="index.html">Courses</a></li>
+                    <li><a href="index.php">Courses</a></li>
                     <li><a href="#">Sales</a></li>
                     <li><a href="#">Contact</a></li>
                 </ul>
@@ -121,7 +130,7 @@
                     </div>
                     
                     <div class="auth-footer">
-                        <p>Already have an account? <a href="login.html">Sign in</a></p>
+                        <p>Already have an account? <a href="login.php">Sign in</a></p>
                     </div>
                 </div>
             </div>
