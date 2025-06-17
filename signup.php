@@ -84,7 +84,6 @@ $flash_message = AuthController::getFlashMessage();
                         <div class="form-group">
                             <label for="password">Contraseña</label>
                             <div class="input-with-icon">
-                                <i class="fas fa-lock"></i>
                                 <input type="password" id="password" name="password" placeholder="Crea una contraseña" required>
                                 <i class="fas fa-eye toggle-password"></i>
                             </div>
@@ -103,7 +102,6 @@ $flash_message = AuthController::getFlashMessage();
                         <div class="form-group">
                             <label for="confirmPassword">Confirmar Contraseña</label>
                             <div class="input-with-icon">
-                                <i class="fas fa-lock"></i>
                                 <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirma tu contraseña" required>
                                 <i class="fas fa-eye toggle-password"></i>
                             </div>
