@@ -3,11 +3,7 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Protección de ruta: Redirigir si no es admin
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: ../../admin_login.html'); // Redirige a la página de login de admin
-    exit();
-}
+
 ?>
 <!DOCTYPE html>
 <html lang="es">

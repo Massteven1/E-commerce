@@ -1,18 +1,6 @@
 <?php
 session_start();
 
-// Verificar si es admin
-$isAdmin = false;
-if (isset($_SESSION['user_email'])) {
-    $adminEmails = ['admin@ecommerce.com', 'admin@elprofehernan.com'];
-    $isAdmin = in_array($_SESSION['user_email'], $adminEmails);
-}
-
-if (!$isAdmin) {
-    header('Location: ../../login.html');
-    exit();
-}
-
 // Cargar controladores necesarios
 require_once __DIR__ . '/../../config/Database.php';
 require_once __DIR__ . '/../../models/Playlist.php';

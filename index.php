@@ -134,8 +134,8 @@ if (isset($_SESSION['user_email'])) {
                     </div>
                 <?php else: ?>
                     <div class="auth-links">
-                        <a href="login.html" class="btn-login">Login</a>
-                        <a href="signup.html" class="btn-signup">Registro</a>
+                        <a href="login.php" class="btn-login">Login</a>
+                        <a href="signup.php" class="btn-signup">Registro</a>
                     </div>
                 <?php endif; ?>
             </nav>
