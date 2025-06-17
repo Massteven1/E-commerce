@@ -178,6 +178,19 @@ $playlists = $playlistModel->readAll();
         </div>
     </section>
 
+    <section class="view-all-courses">
+        <div class="container">
+            <div class="view-all-content">
+                <h2>¿Quieres ver todos nuestros cursos?</h2>
+                <p>Explora nuestra colección completa de cursos de inglés organizados por niveles</p>
+                <a href="all-courses.php" class="btn-primary btn-large">
+                    <i class="fas fa-graduation-cap"></i>
+                    Ver Todos los Cursos
+                </a>
+            </div>
+        </div>
+    </section>
+
     <footer class="footer">
         <div class="container">
             <p>&copy; 2024 El Profesor Hernán. Todos los derechos reservados.</p>
