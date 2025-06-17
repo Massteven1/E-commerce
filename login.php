@@ -13,28 +13,10 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - English Learning Platform</title>
-    <link rel="stylesheet" href="public/css/styles.css">
     <link rel="stylesheet" href="public/css/auth.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <!-- Header Section -->
-    <header>
-        <div class="container">
-            <div class="logo">
-                <div class="logo-circle">
-                    <span>ht</span>
-                </div>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="index.php">Courses</a></li>
-                    <li><a href="#">Sales</a></li>
-                    <li><a href="#">Contact</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
 
     <!-- Login Section -->
     <section class="auth-section">

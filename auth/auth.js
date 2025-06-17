@@ -13,8 +13,8 @@ document.addEventListener("DOMContentLoaded", () => {
   auth.onAuthStateChanged((user) => {
     if (user) {
       const currentPage = window.location.pathname;
-      if (currentPage.includes("login.html") || currentPage.includes("signup.html")) {
-        window.location.href = "index.html";
+      if (currentPage.includes("login.php") || currentPage.includes("signup.php")) {
+        window.location.href = "views/client/test-login.php";
       }
     }
   });
