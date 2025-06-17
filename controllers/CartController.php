@@ -16,7 +16,8 @@ class CartController {
         'EDUCACION25' => 0.25, // 25% de descuento
         'PROFE50' => 0.50, // 50% de descuento
         'NUEVOUSUARIO' => 0.15, // 15% de descuento
-        'AHORRAHOY' => 0.20  // 20% de descuento
+        'AHORRAHOY' => 0.20,  // 20% de descuento
+        'BIENVENIDO20' => 0.20  // 20% de descuento
     ];
 
     public function __construct() {
@@ -84,6 +85,7 @@ class CartController {
         $cart_items = $_SESSION['cart'];
         $totals = $this->calculateTotals($cart_items);
         
+        // Incluir la vista de checkout
         require_once __DIR__ . '/../views/client/checkout.php';
     }
 

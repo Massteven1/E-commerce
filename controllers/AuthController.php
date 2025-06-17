@@ -20,14 +20,14 @@ class AuthController {
 
             // Validaciones básicas
             if (empty($email) || empty($password)) {
-                $this->setFlashMessage('error', 'Email y contraseña son requeridos');
+                self::setFlashMessage('error', 'Email y contraseña son requeridos');
                 header('Location: login.php');
                 exit();
             }
 
             // Validar formato de email
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $this->setFlashMessage('error', 'Por favor, ingresa un email válido');
+                self::setFlashMessage('error', 'Por favor, ingresa un email válido');
                 header('Location: login.php');
                 exit();
             }
@@ -45,12 +45,12 @@ class AuthController {
                     // Redirigir según el rol
                     $this->redirectByRole($this->user->role);
                 } else {
-                    $this->setFlashMessage('error', 'Credenciales inválidas');
+                    self::setFlashMessage('error', 'Credenciales inválidas');
                     header('Location: login.php');
                     exit();
                 }
             } else {
-                $this->setFlashMessage('error', 'Usuario no encontrado');
+                self::setFlashMessage('error', 'Usuario no encontrado');
                 header('Location: login.php');
                 exit();
             }
@@ -70,14 +70,14 @@ class AuthController {
             $errors = $this->validateRegistration($first_name, $last_name, $email, $password, $confirm_password);
 
             if (!empty($errors)) {
-                $this->setFlashMessage('error', implode('<br>', $errors));
+                self::setFlashMessage('error', implode('<br>', $errors));
                 header('Location: signup.php');
                 exit();
             }
 
             // Verificar si el email ya existe
             if ($this->user->emailExists($email)) {
-                $this->setFlashMessage('error', 'Este email ya está registrado');
+                self::setFlashMessage('error', 'Este email ya está registrado');
                 header('Location: signup.php');
                 exit();
             }
@@ -93,10 +93,10 @@ class AuthController {
                 // Crear sesión automáticamente
                 $this->createSession($this->user);
                 
-                $this->setFlashMessage('success', 'Cuenta creada exitosamente');
+                self::setFlashMessage('success', 'Cuenta creada exitosamente');
                 $this->redirectByRole($this->user->role);
             } else {
-                $this->setFlashMessage('error', 'Error al crear la cuenta. Intenta de nuevo.');
+                self::setFlashMessage('error', 'Error al crear la cuenta. Intenta de nuevo.');
                 header('Location: signup.php');
                 exit();
             }
@@ -193,8 +193,8 @@ class AuthController {
         }
     }
 
-    // Establecer mensaje flash
-    private function setFlashMessage($type, $message) {
+    // Establecer mensaje flash (método estático)
+    public static function setFlashMessage($type, $message) {
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }

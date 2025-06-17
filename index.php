@@ -30,7 +30,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
     <header class="header">
         <div class="container">
             <div class="logo">
-                <img src="public/img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                <img src="img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
                 <span>El Profesor Hernán</span>
             </div>
             
@@ -78,7 +78,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
                 </div>
                 <div class="banner-image">
                     <div class="image-container">
-                        <img src="public/img/hero-image.png?height=400&width=400" alt="Profesor enseñando inglés">
+                        <img src="img/hero-image.png?height=400&width=400" alt="Profesor enseñando inglés">
                     </div>
                 </div>
             </div>
@@ -309,7 +309,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
             <div class="footer-content">
                 <div class="footer-section">
                     <div class="logo">
-                        <img src="public/img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                        <img src="img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
                         <span>El Profesor Hernán</span>
                     </div>
                     <p>Tu mejor opción para aprender inglés online. Cursos diseñados para todos los niveles.</p>
