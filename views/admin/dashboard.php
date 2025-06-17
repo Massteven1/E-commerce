@@ -32,7 +32,7 @@ if (session_status() == PHP_SESSION_NONE) {
                   <li><a href="#">Configuración</a></li>
               </ul>
           </nav>
-          <a href="../../logout.php" class="logout" id="logoutBtn">
+          <a href="logout.php" class="logout" id="logoutBtn">
               <i class="fas fa-sign-out-alt"></i>
           </a>
       </div>
