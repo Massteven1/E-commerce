@@ -89,9 +89,9 @@ if (session_status() == PHP_SESSION_NONE) {
                     <li><a href="#">Configuración</a></li>
                 </ul>
             </nav>
-            <button class="logout" id="logoutBtn">
-                <i class="fas fa-sign-out-alt"></i>
-            </button>
+          <a href="logout.php" class="logout" id="logoutBtn">
+              <i class="fas fa-sign-out-alt"></i>
+          </a>
         </div>
     </header>
 

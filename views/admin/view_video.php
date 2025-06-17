@@ -403,7 +403,11 @@ if (session_status() == PHP_SESSION_NONE) {
                     <li><a href="index.php?controller=admin&action=dashboard">Dashboard</a></li>
                     <li><a href="index.php?controller=playlist&action=index">Cursos</a></li>
                     <li><a href="#">Configuración</a></li>
-                    <li class="logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></li>
+                    <li>
+                        <a href="logout.php" class="logout" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </a>
+                    </li>
                 </ul>
             </nav>
         </div>

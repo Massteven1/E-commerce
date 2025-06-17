@@ -25,9 +25,9 @@ if (session_status() == PHP_SESSION_NONE) {
                   <li><a href="#">Configuración</a></li>
               </ul>
           </nav>
-          <button class="logout" id="logoutBtn">
+          <a href="logout.php" class="logout" id="logoutBtn">
               <i class="fas fa-sign-out-alt"></i>
-          </button>
+          </a>
       </div>
   </header>
 
@@ -135,7 +135,5 @@ if (session_status() == PHP_SESSION_NONE) {
       <a href="#"><i class="fas fa-arrow-up"></i></a>
   </div>
 
-  <script src="../../auth/firebase-config.js"></script>
-  <script src="../../auth/auth.js"></script>
 </body>
 </html>
