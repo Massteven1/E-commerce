@@ -2,6 +2,17 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
+
+// Cargar dependencias directamente
+require_once __DIR__ . '/../../config/Database.php';
+require_once __DIR__ . '/../../models/Playlist.php';
+
+$database = new Database();
+$db = $database->getConnection();
+$playlistModel = new Playlist($db);
+
+// Obtener todos los cursos
+$playlists = $playlistModel->readAll();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,7 +29,7 @@ if (session_status() == PHP_SESSION_NONE) {
     <header class="header">
         <div class="container">
             <div class="logo">
-                <img src="../../public/img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                <img src="../../img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
                 <span>El Profesor Hernán</span>
             </div>
             
@@ -26,7 +37,7 @@ if (session_status() == PHP_SESSION_NONE) {
                 <ul>
                     <li><a href="home.php">Inicio</a></li>
                     <li><a href="home.php">Cursos</a></li>
-                    <li><a href="home.php?controller=cart&action=view">
+                    <li><a href="cart.php">
                         <i class="fas fa-shopping-cart"></i>
                         Carrito
                         <?php if (isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
@@ -37,7 +48,16 @@ if (session_status() == PHP_SESSION_NONE) {
             </nav>
             
             <div class="auth-links">
-                <a href="logout.php" class="btn-logout">Cerrar Sesión</a>
+                <?php if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']): ?>
+                    <span>Hola, <?php echo htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['user_email']); ?></span>
+                    <?php if ($_SESSION['user_role'] === 'admin'): ?>
+                        <a href="../admin/index.php?controller=admin&action=dashboard" class="btn-admin">Panel Admin</a>
+                    <?php endif; ?>
+                    <a href="../../logout.php" class="btn-logout">Cerrar Sesión</a>
+                <?php else: ?>
+                    <a href="../../login.php" class="btn-login">Iniciar Sesión</a>
+                    <a href="../../signup.php" class="btn-signup">Registrarse</a>
+                <?php endif; ?>
             </div>
         </div>
     </header>
@@ -50,12 +70,12 @@ if (session_status() == PHP_SESSION_NONE) {
                     <p>Explora todos nuestros cursos disponibles y comienza tu aprendizaje</p>
                     <div class="banner-buttons">
                         <a href="#cursos" class="btn-primary">VER CURSOS</a>
-                        <a href="home.php?controller=cart&action=view" class="btn-secondary">IR AL CARRITO</a>
+                        <a href="cart.php" class="btn-secondary">IR AL CARRITO</a>
                     </div>
                 </div>
                 <div class="banner-image">
                     <div class="image-container">
-                        <img src="../../public/img/hero-image.png?height=300&width=300" alt="Person teaching">
+                        <img src="../../img/hero-image.png?height=300&width=300" alt="Person teaching">
                     </div>
                 </div>
             </div>
@@ -70,22 +90,22 @@ if (session_status() == PHP_SESSION_NONE) {
                 <?php if (!empty($playlists)): ?>
                     <?php foreach ($playlists as $playlist): ?>
                         <div class="product-card">
-                            <a href="home.php?controller=playlist&action=view_detail&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="product-tumb">
+                            <a href="course-detail.php?id=<?php echo htmlspecialchars($playlist['id']); ?>" class="product-tumb">
                                 <?php if (!empty($playlist['cover_image'])): ?>
-                                    <img src="<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
+                                    <img src="../../<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
                                 <?php else: ?>
                                     <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
                                 <?php endif; ?>
                             </a>
                             <div class="product-details">
                                 <span class="product-catagory">Nivel <?php echo htmlspecialchars($playlist['level']); ?></span>
-                                <h4><a href="home.php?controller=playlist&action=view_detail&id=<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
+                                <h4><a href="course-detail.php?id=<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
                                 <p><?php echo htmlspecialchars($playlist['description'] ?: 'Sin descripción'); ?></p>
                                 <div class="product-bottom-details">
                                     <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?></div>
                                     <div class="product-links">
                                         <?php if (!isset($_SESSION['cart'][$playlist['id']])): ?>
-                                            <a href="home.php?controller=cart&action=add&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="add-to-cart-btn">Añadir al Carrito</a>
+                                            <a href="cart.php?action=add&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="add-to-cart-btn">Añadir al Carrito</a>
                                         <?php else: ?>
                                             <button class="add-to-cart-btn" disabled style="opacity: 0.6;">Ya en el Carrito</button>
                                         <?php endif; ?>
@@ -164,7 +184,7 @@ if (session_status() == PHP_SESSION_NONE) {
             <div class="footer-links">
                 <a href="home.php">Inicio</a>
                 <a href="home.php">Cursos</a>
-                <a href="home.php?controller=cart&action=view">Carrito</a>
+                <a href="cart.php">Carrito</a>
             </div>
             <p>Aprende inglés con los mejores cursos online</p>
         </div>
@@ -172,7 +192,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="auth/firebase-config.js"></script>
-    <script src="auth/auth.js"></script>
+    <script src="../../auth/firebase-config.js"></script>
+    <script src="../../auth/auth.js"></script>
 </body>
 </html>

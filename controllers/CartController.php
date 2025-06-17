@@ -52,18 +52,13 @@ class CartController {
                 ];
             }
         }
-        // Redirigir de vuelta a la página principal o a la vista del carrito
-        $this->redirect('cart', 'view');
     }
 
     public function remove($playlist_id) {
         if (isset($_SESSION['cart'][$playlist_id])) {
             unset($_SESSION['cart'][$playlist_id]);
         }
-        $this->redirect('cart', 'view');
     }
-
-    // Eliminar método updateQuantity ya que no se necesita
 
     public function applyPromoCode($code) {
         $code = strtoupper(trim($code)); // Normalizar el código (mayúsculas, sin espacios)
@@ -77,32 +72,13 @@ class CartController {
             $_SESSION['promo_discount_rate'] = 0;
             $_SESSION['promo_message'] = 'Código promocional inválido o expirado.';
         }
-        $this->redirect('cart', 'view');
-    }
-
-    public function view() {
-        $cart_items = $_SESSION['cart'];
-        $totals = $this->calculateTotals($cart_items);
-        
-        // Para la sección "También te podría gustar"
-        $recommended_playlists = $this->playlistModel->readAll();
-        // Opcional: filtrar o seleccionar aleatoriamente algunas para recomendación
-        shuffle($recommended_playlists); // Mezclar para mostrar diferentes cada vez
-        $recommended_playlists = array_slice($recommended_playlists, 0, 2); // Tomar solo 2
-
-        // Pasar el mensaje del código promocional a la vista
-        $promo_message = $_SESSION['promo_message'];
-        // Limpiar el mensaje después de mostrarlo una vez
-        $_SESSION['promo_message'] = ''; 
-
-        require_once __DIR__ . '/../views/client/cart.php';
     }
 
     public function checkout() {
         // Verificar que hay items en el carrito
         if (empty($_SESSION['cart'])) {
-            $this->redirect('cart', 'view');
-            return;
+            header('Location: cart.php');
+            exit();
         }
 
         $cart_items = $_SESSION['cart'];
@@ -111,7 +87,7 @@ class CartController {
         require_once __DIR__ . '/../views/client/checkout.php';
     }
 
-    private function calculateTotals($items) {
+    public function calculateTotals($items) {
         $subtotal = 0;
         foreach ($items as $item) {
             $subtotal += $item['price']; // Ya no multiplicamos por cantidad
@@ -131,14 +107,6 @@ class CartController {
             'total' => $total,
             'promo_code_applied' => $_SESSION['promo_code_applied'] // Para mostrar qué código se aplicó
         ];
-    }
-
-    private function redirect($controller, $action, $id = null, $extra_param = null) {
-        $url = "index.php?controller={$controller}&action={$action}";
-        if ($id) $url .= "&id={$id}";
-        if ($extra_param) $url .= "&param={$extra_param}";
-        header("Location: {$url}");
-        exit();
     }
 }
 ?>

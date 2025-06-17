@@ -188,18 +188,17 @@
 
 .input-with-icon input {
   width: 100%;
-  padding: 14px 15px 14px 45px; /* Ajustado para un mejor aspecto */
+  padding: 14px 15px 14px 45px; /* Padding por defecto para campos con solo icono izquierdo */
   border: 2px solid var(--medium-gray);
-  border-radius: 15px; /* Más redondeado */
+  border-radius: 15px;
   font-size: 16px;
-  transition: var(--transition); /* Usando la variable de transición */
+  transition: var(--transition);
   box-sizing: border-box;
 }
 
-.input-with-icon input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(138, 86, 226, 0.2); /* Sombra más suave y extendida */
+/* Padding especial para campos de contraseña que tienen icono de toggle */
+.input-with-icon input[type="password"] {
+  padding: 14px 45px 14px 45px; /* Espacio para ambos iconos */
 }
 
 .toggle-password {

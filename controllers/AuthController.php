@@ -189,7 +189,7 @@ class AuthController {
         if ($role === 'admin') {
             return 'views/admin/index.php?controller=admin&action=dashboard';
         } else {
-            return 'views/client/home.php';
+            return 'views/client/home.php'; // Redirección directa y simple
         }
     }
 

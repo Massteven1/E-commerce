@@ -1,12 +1,25 @@
 <?php
-// Asegúrate de que la sesión esté iniciada
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-// La variable $playlist se pasa desde el PlaylistController::viewClientDetail()
-if (!isset($playlist) || empty($playlist)) {
-    // Redirigir o mostrar un mensaje de error si la playlist no se encuentra
-    header('Location: index.php'); // O a una página de error 404
+
+// Cargar dependencias
+require_once __DIR__ . '/../../config/Database.php';
+require_once __DIR__ . '/../../models/Playlist.php';
+
+$database = new Database();
+$db = $database->getConnection();
+$playlistModel = new Playlist($db);
+
+$id = $_GET['id'] ?? null;
+if (!$id) {
+    header('Location: home.php');
+    exit();
+}
+
+$playlist = $playlistModel->readOne($id);
+if (!$playlist) {
+    header('Location: home.php');
     exit();
 }
 
@@ -43,13 +56,61 @@ if ($playlist['price'] < $original_price && $original_price > 0) {
     $discount_percentage = round((($original_price - $playlist['price']) / $original_price) * 100);
 }
 ?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Profesor Hernán - Cursos de Inglés</title>
+    <link rel="stylesheet" href="../../public/css/styles.css">
+    <link rel="stylesheet" href="../../public/css/course-detail.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <img src="../../img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                <span>El Profesor Hernán</span>
+            </div>
+            
+            <nav class="nav">
+                <ul>
+                    <li><a href="home.php">Inicio</a></li>
+                    <li><a href="home.php">Cursos</a></li>
+                    <li><a href="cart.php">
+                        <i class="fas fa-shopping-cart"></i>
+                        Carrito
+                        <?php if (isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
+                            <span class="cart-count"><?php echo count($_SESSION['cart']); ?></span>
+                        <?php endif; ?>
+                    </a></li>
+                </ul>
+            </nav>
+            
+            <div class="auth-links">
+                <?php if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']): ?>
+                    <span>Hola, <?php echo htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['user_email']); ?></span>
+                    <?php if ($_SESSION['user_role'] === 'admin'): ?>
+                        <a href="../admin/index.php?controller=admin&action=dashboard" class="btn-admin">Panel Admin</a>
+                    <?php endif; ?>
+                    <a href="../../logout.php" class="btn-logout">Cerrar Sesión</a>
+                <?php else: ?>
+                    <a href="../../login.php" class="btn-login">Iniciar Sesión</a>
+                    <a href="../../signup.php" class="btn-signup">Registrarse</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </header>
 
 <!-- Breadcrumb Navigation -->
 <div class="breadcrumb">
     <div class="container">
         <ul>
-            <li><a href="index.php">Home</a></li>
-            <li><a href="index.php">Cursos</a></li>
+            <li><a href="home.php">Home</a></li>
+            <li><a href="home.php">Cursos</a></li>
             <li><?php echo htmlspecialchars($playlist['name']); ?></li>
         </ul>
     </div>
@@ -61,7 +122,7 @@ if ($playlist['price'] < $original_price && $original_price > 0) {
         <div class="course-detail-content">
             <div class="course-image-container">
                 <?php if (!empty($playlist['cover_image'])): ?>
-                    <img src="<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
+                    <img src="../../<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
                 <?php else: ?>
                     <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
                 <?php endif; ?>
@@ -100,7 +161,7 @@ if ($playlist['price'] < $original_price && $original_price > 0) {
                 </div>
                 <div class="course-actions">
                     <?php if (!isset($_SESSION['cart'][$playlist['id']])): ?>
-                        <a href="index.php?controller=cart&action=add&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="btn-primary">
+                        <a href="cart.php?action=add&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="btn-primary">
                             <i class="fas fa-shopping-cart"></i> Añadir al Carrito
                         </a>
                     <?php else: ?>
@@ -113,3 +174,24 @@ if ($playlist['price'] < $original_price && $original_price > 0) {
         </div>
     </div>
 </section>
+
+<!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 El Profesor Hernán. Todos los derechos reservados.</p>
+            <div class="footer-links">
+                <a href="home.php">Inicio</a>
+                <a href="home.php">Cursos</a>
+                <a href="cart.php">Carrito</a>
+            </div>
+            <p>Aprende inglés con los mejores cursos online</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="../../auth/firebase-config.js"></script>
+    <script src="../../auth/auth.js"></script>
+</body>
+</html>

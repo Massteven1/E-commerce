@@ -2,6 +2,63 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
+
+// Cargar dependencias
+require_once __DIR__ . '/../../config/Database.php';
+require_once __DIR__ . '/../../models/Playlist.php';
+require_once __DIR__ . '/../../controllers/CartController.php';
+
+// Manejar acciones del carrito
+$action = $_GET['action'] ?? 'view';
+$id = $_GET['id'] ?? null;
+
+$cartController = new CartController();
+
+switch ($action) {
+    case 'add':
+        if ($id) {
+            $cartController->add($id);
+            header('Location: cart.php');
+            exit();
+        }
+        break;
+    case 'remove':
+        if ($id) {
+            $cartController->remove($id);
+            header('Location: cart.php');
+            exit();
+        }
+        break;
+    case 'checkout':
+        $cartController->checkout();
+        exit();
+        break;
+    case 'apply_promo':
+        if (isset($_POST['promo_code'])) {
+            $cartController->applyPromoCode($_POST['promo_code']);
+            header('Location: cart.php');
+            exit();
+        }
+        break;
+}
+
+// Mostrar vista del carrito
+$cart_items = $_SESSION['cart'] ?? [];
+$database = new Database();
+$db = $database->getConnection();
+$playlistModel = new Playlist($db);
+
+// Calcular totales
+$totals = $cartController->calculateTotals($cart_items);
+
+// Cursos recomendados
+$recommended_playlists = $playlistModel->readAll();
+shuffle($recommended_playlists);
+$recommended_playlists = array_slice($recommended_playlists, 0, 2);
+
+// Mensaje promocional
+$promo_message = $_SESSION['promo_message'] ?? '';
+$_SESSION['promo_message'] = '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -9,8 +66,8 @@ if (session_status() == PHP_SESSION_NONE) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carrito - El Profesor Hernán</title>
-    <link rel="stylesheet" href="public/css/styles.css">
-    <link rel="stylesheet" href="public/css/course-detail.css">
+    <link rel="stylesheet" href="../../public/css/styles.css">
+    <link rel="stylesheet" href="../../public/css/course-detail.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -18,7 +75,7 @@ if (session_status() == PHP_SESSION_NONE) {
     <header class="header">
         <div class="container">
             <div class="logo">
-                <img src="img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                <img src="../../img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
                 <span>El Profesor Hernán</span>
             </div>
             
@@ -26,7 +83,7 @@ if (session_status() == PHP_SESSION_NONE) {
                 <ul>
                     <li><a href="home.php">Inicio</a></li>
                     <li><a href="home.php">Cursos</a></li>
-                    <li><a href="home.php?controller=cart&action=view">
+                    <li><a href="cart.php">
                         <i class="fas fa-shopping-cart"></i>
                         Carrito
                         <?php if (isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
@@ -37,7 +94,16 @@ if (session_status() == PHP_SESSION_NONE) {
             </nav>
             
             <div class="auth-links">
-                <a href="logout.php" class="btn-logout">Cerrar Sesión</a>
+                <?php if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']): ?>
+                    <span>Hola, <?php echo htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['user_email']); ?></span>
+                    <?php if ($_SESSION['user_role'] === 'admin'): ?>
+                        <a href="../admin/index.php?controller=admin&action=dashboard" class="btn-admin">Panel Admin</a>
+                    <?php endif; ?>
+                    <a href="../../logout.php" class="btn-logout">Cerrar Sesión</a>
+                <?php else: ?>
+                    <a href="../../login.php" class="btn-login">Iniciar Sesión</a>
+                    <a href="../../signup.php" class="btn-signup">Registrarse</a>
+                <?php endif; ?>
             </div>
         </div>
     </header>
@@ -60,7 +126,7 @@ if (session_status() == PHP_SESSION_NONE) {
                                 <div class="cart-item-product">
                                     <div class="cart-item-image">
                                         <?php if (!empty($item['cover_image'])): ?>
-                                            <img src="<?php echo htmlspecialchars($item['cover_image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                                            <img src="../../<?php echo htmlspecialchars($item['cover_image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
                                         <?php else: ?>
                                             <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
                                         <?php endif; ?>
@@ -72,7 +138,7 @@ if (session_status() == PHP_SESSION_NONE) {
                                 </div>
                                 <div class="cart-item-price">$<?php echo htmlspecialchars(number_format($item['price'], 2)); ?></div>
                                 <div class="cart-item-actions">
-                                    <a href="home.php?controller=cart&action=remove&id=<?php echo htmlspecialchars($item['id']); ?>" class="remove-item" onclick="return confirm('¿Estás seguro de que quieres eliminar este curso del carrito?');"><i class="fas fa-trash"></i> Eliminar</a>
+                                    <a href="cart.php?action=remove&id=<?php echo htmlspecialchars($item['id']); ?>" class="remove-item" onclick="return confirm('¿Estás seguro de que quieres eliminar este curso del carrito?');"><i class="fas fa-trash"></i> Eliminar</a>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -113,7 +179,7 @@ if (session_status() == PHP_SESSION_NONE) {
                         <span>$<?php echo htmlspecialchars(number_format($totals['total'], 2)); ?></span>
                     </div>
                     
-                    <form action="home.php?controller=cart&action=apply_promo" method="post" class="promo-code">
+                    <form action="cart.php?action=apply_promo" method="post" class="promo-code">
                         <input type="text" name="promo_code" placeholder="Código Promocional" value="<?php echo htmlspecialchars($_SESSION['promo_code_applied'] ?? ''); ?>">
                         <button type="submit">Aplicar</button>
                     </form>
@@ -124,7 +190,7 @@ if (session_status() == PHP_SESSION_NONE) {
                     <?php endif; ?>
                     
                     <?php if (!empty($cart_items)): ?>
-                        <a href="home.php?controller=cart&action=checkout" class="btn-primary checkout-btn">Proceder al Pago</a>
+                        <a href="cart.php?action=checkout" class="btn-primary checkout-btn">Proceder al Pago</a>
                     <?php endif; ?>
                     <a href="home.php" class="continue-shopping">
                         <i class="fas fa-arrow-left"></i> Continuar Comprando
@@ -148,7 +214,7 @@ if (session_status() == PHP_SESSION_NONE) {
                                 <h3 class="course-title"><?php echo htmlspecialchars($rec_playlist['name']); ?></h3>
                                 <p class="course-subtitle"><?php echo htmlspecialchars($rec_playlist['description'] ?: 'Curso completo de inglés'); ?></p>
                                 <p class="course-price">$<?php echo htmlspecialchars(number_format($rec_playlist['price'], 2)); ?></p>
-                                <a href="home.php?controller=cart&action=add&id=<?php echo htmlspecialchars($rec_playlist['id']); ?>" class="btn-primary">Añadir al Carrito</a>
+                                <a href="cart.php?action=add&id=<?php echo htmlspecialchars($rec_playlist['id']); ?>" class="btn-primary">Añadir al Carrito</a>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -163,7 +229,7 @@ if (session_status() == PHP_SESSION_NONE) {
             <div class="footer-links">
                 <a href="home.php">Inicio</a>
                 <a href="home.php">Cursos</a>
-                <a href="home.php?controller=cart&action=view">Carrito</a>
+                <a href="cart.php">Carrito</a>
             </div>
             <p>Aprende inglés con los mejores cursos online</p>
         </div>
@@ -171,7 +237,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="auth/firebase-config.js"></script>
-    <script src="auth/auth.js"></script>
+    <script src="../../auth/firebase-config.js"></script>
+    <script src="../../auth/auth.js"></script>
 </body>
 </html>
