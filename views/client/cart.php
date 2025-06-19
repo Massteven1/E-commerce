@@ -1,275 +1,365 @@
 <?php
-// Asegúrate de que la sesión esté iniciada
+// Iniciar sesión si no está iniciada
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/../../controllers/AuthController.php';
+// Incluir dependencias
 require_once __DIR__ . '/../../controllers/CartController.php';
+require_once __DIR__ . '/../../controllers/AuthController.php';
 
-use Controllers\AuthController;
 use Controllers\CartController;
+use Controllers\AuthController;
 
-// Las variables $cart_items y $totals se pasan desde el CartController
-// Si se accede directamente, inicializarlas
+// Verificar autenticación
+if (!AuthController::isAuthenticated()) {
+    header('Location: ../../login.php');
+    exit();
+}
+
+// Inicializar controlador del carrito
 $cartController = new CartController();
 $cart_items = $cartController->getCartItems();
 $totals = $cartController->calculateTotals($cart_items);
-
-// Obtener mensaje flash si existe
-$flashMessage = AuthController::getFlashMessage();
-$promoMessage = $_SESSION['promo_message'] ?? '';
+$currentUser = AuthController::getCurrentUser();
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Profesor Hernán - Carrito de Compras</title>
-    <link rel="stylesheet" href="../../public/css/styles.css">
-    <link rel="stylesheet" href="../../public/css/cart-improvements.css">
+    <title>Carrito de Compras - El Profesor Hernán</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #8a56e2;
+            --purple-color: #6c5ce7;
+            --teal-color: #56e2c6;
+            --orange-color: #fd79a8;
+            --red-color: #ff5a5a;
+            --white: #ffffff;
+            --light-gray: #f8f9fa;
+            --dark-gray: #6c757d;
+            --text-color: #2d3748;
+            --text-muted: #718096;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .cart-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+        }
+
+        .cart-items {
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cart-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-image {
+            width: 120px;
+            height: 80px;
+            border-radius: var(--border-radius-md);
+            overflow: hidden;
+        }
+
+        .item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .item-details {
+            flex: 1;
+        }
+
+        .item-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-level {
+            background: var(--primary-color);
+            color: var(--white);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .item-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-remove {
+            background: var(--red-color);
+            color: var(--white);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-remove:hover {
+            background: #e53e3e;
+        }
+
+        .cart-summary {
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-sm);
+            height: fit-content;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .btn-checkout {
+            width: 100%;
+            background: var(--primary-color);
+            color: var(--white);
+            border: none;
+            padding: 1rem;
+            border-radius: var(--border-radius-md);
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 1rem;
+        }
+
+        .btn-checkout:hover {
+            background: var(--purple-color);
+            transform: translateY(-2px);
+        }
+
+        .empty-cart {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-cart i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .btn-continue {
+            background: var(--teal-color);
+            color: var(--white);
+            padding: 1rem 2rem;
+            border-radius: var(--border-radius-md);
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 1rem;
+            transition: var(--transition);
+        }
+
+        .btn-continue:hover {
+            background: #48b090;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .cart-content {
+                grid-template-columns: 1fr;
+            }
+
+            .cart-item {
+                flex-direction: column;
+            }
+
+            .item-image {
+                width: 100%;
+                height: 200px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="logo">
-                <img src="../../img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
-                <span>El Profesor Hernán</span>
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-shopping-cart"></i> Mi Carrito</h1>
+            <p>Revisa tus cursos seleccionados</p>
+        </div>
+
+        <?php if (empty($cart_items)): ?>
+            <div class="empty-cart">
+                <i class="fas fa-shopping-cart"></i>
+                <h3>Tu carrito está vacío</h3>
+                <p>¡Explora nuestros cursos y comienza tu aprendizaje!</p>
+                <a href="all-courses.php" class="btn-continue">
+                    <i class="fas fa-book"></i> Ver Cursos
+                </a>
             </div>
-            
-            <nav class="nav">
-                <ul>
-                    <li><a href="home.php">Inicio</a></li>
-                    <li><a href="all-courses.php">Cursos</a></li>
-                    <li><a href="cart.php" class="active">
-                        <i class="fas fa-shopping-cart"></i>
-                        Carrito
-                        <?php if (count($cart_items) > 0): ?>
-                            <span class="cart-count"><?php echo count($cart_items); ?></span>
-                        <?php endif; ?>
-                    </a></li>
-                </ul>
-            </nav>
-            
-            <div class="auth-links">
-                <?php if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']): ?>
-                    <span>Hola, <?php echo htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['user_email']); ?></span>
-                    <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                        <a href="../admin/index.php?controller=admin&action=dashboard" class="btn-admin">Panel Admin</a>
+        <?php else: ?>
+            <div class="cart-content">
+                <div class="cart-items">
+                    <h3>Cursos en tu carrito (<?php echo count($cart_items); ?>)</h3>
+                    
+                    <?php foreach ($cart_items as $item): ?>
+                        <div class="cart-item">
+                            <div class="item-image">
+                                <img src="<?php echo !empty($item['cover_image']) ? '../../' . $item['cover_image'] : 'https://via.placeholder.com/120x80/8a56e2/ffffff?text=Curso'; ?>" 
+                                     alt="<?php echo htmlspecialchars($item['name']); ?>">
+                            </div>
+                            
+                            <div class="item-details">
+                                <h4 class="item-title"><?php echo htmlspecialchars($item['name']); ?></h4>
+                                <?php if (!empty($item['level'])): ?>
+                                    <span class="item-level"><?php echo htmlspecialchars($item['level']); ?></span>
+                                <?php endif; ?>
+                                <div class="item-price">$<?php echo number_format($item['price'], 2); ?></div>
+                            </div>
+                            
+                            <div class="item-actions">
+                                <button onclick="removeFromCart(<?php echo $item['id']; ?>)" class="btn-remove">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div class="cart-summary">
+                    <h3>Resumen del Pedido</h3>
+                    
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span>$<?php echo number_format($totals['subtotal'], 2); ?></span>
+                    </div>
+                    
+                    <?php if ($totals['discount'] > 0): ?>
+                        <div class="summary-row">
+                            <span>Descuento:</span>
+                            <span>-$<?php echo number_format($totals['discount'], 2); ?></span>
+                        </div>
                     <?php endif; ?>
-                    <a href="purchase-history.php" class="btn-history">Mis Cursos</a>
-                    <a href="../../logout.php" class="btn-logout">Cerrar Sesión</a>
-                <?php else: ?>
-                    <a href="../../login.php" class="btn-login">Iniciar Sesión</a>
-                    <a href="../../signup.php" class="btn-signup">Registrarse</a>
-                <?php endif; ?>
-            </div>
-        </div>
-    </header>
-
-    <!-- Cart Section -->
-    <section class="cart-section">
-        <div class="container">
-            <h1 class="cart-title">Tu Carrito de Compras</h1>
-            
-            <?php if ($flashMessage): ?>
-                <div class="alert alert-<?php echo $flashMessage['type']; ?>">
-                    <i class="fas fa-<?php echo $flashMessage['type'] === 'error' ? 'exclamation-triangle' : ($flashMessage['type'] === 'success' ? 'check-circle' : 'info-circle'); ?>"></i>
-                    <?php echo $flashMessage['message']; ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if (empty($cart_items)): ?>
-                <!-- Empty Cart -->
-                <div class="empty-cart">
-                    <div class="empty-cart-icon">
-                        <i class="fas fa-shopping-cart"></i>
+                    
+                    <div class="summary-row">
+                        <span>Impuestos:</span>
+                        <span>$<?php echo number_format($totals['tax'], 2); ?></span>
                     </div>
-                    <h2>Tu carrito está vacío</h2>
-                    <p>¡Explora nuestros cursos y comienza tu aprendizaje de inglés!</p>
-                    <a href="all-courses.php" class="btn-primary">
-                        <i class="fas fa-book"></i>
-                        Ver Cursos Disponibles
+                    
+                    <div class="summary-row">
+                        <span>Total:</span>
+                        <span>$<?php echo number_format($totals['total'], 2); ?></span>
+                    </div>
+                    
+                    <button onclick="proceedToCheckout()" class="btn-checkout">
+                        <i class="fas fa-credit-card"></i> Proceder al Pago
+                    </button>
+                    
+                    <a href="all-courses.php" class="btn-continue" style="text-align: center; margin-top: 1rem;">
+                        <i class="fas fa-arrow-left"></i> Seguir Comprando
                     </a>
                 </div>
-            <?php else: ?>
-                <!-- Cart with Items -->
-                <div class="cart-container">
-                    <!-- Cart Items -->
-                    <div class="cart-items">
-                        <div class="cart-header">
-                            <div class="cart-header-product">Curso</div>
-                            <div class="cart-header-price">Precio</div>
-                            <div class="cart-header-total">Acciones</div>
-                        </div>
-                        
-                        <?php foreach ($cart_items as $item): ?>
-                            <div class="cart-item">
-                                <div class="cart-item-product">
-                                    <div class="cart-item-image">
-                                        <?php if (!empty($item['cover_image'])): ?>
-                                            <img src="../../<?php echo htmlspecialchars($item['cover_image']); ?>" 
-                                                 alt="<?php echo htmlspecialchars($item['name']); ?>">
-                                        <?php else: ?>
-                                            <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="cart-item-details">
-                                        <h3><?php echo htmlspecialchars($item['name']); ?></h3>
-                                        <p>Acceso Digital Completo</p>
-                                        <?php if (!empty($item['level'])): ?>
-                                            <span class="course-level"><?php echo htmlspecialchars($item['level']); ?></span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                                <div class="cart-item-price">
-                                    $<?php echo htmlspecialchars(number_format($item['price'], 2)); ?>
-                                </div>
-                                <div class="cart-item-actions">
-                                    <a href="../../controllers/CartController.php?action=remove&id=<?php echo $item['id']; ?>" 
-                                       class="remove-item" 
-                                       onclick="return confirm('¿Estás seguro de que quieres eliminar este curso del carrito?')">
-                                        <i class="fas fa-trash"></i>
-                                        Eliminar
-                                    </a>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <!-- Cart Summary -->
-                    <div class="cart-summary">
-                        <h2>Resumen del Pedido</h2>
-                        
-                        <!-- Promo Code Section -->
-                        <div class="promo-section">
-                            <h3>Código Promocional</h3>
-                            <?php if ($totals['promo_code_applied']): ?>
-                                <div class="promo-applied">
-                                    <div class="promo-info">
-                                        <i class="fas fa-tag"></i>
-                                        <span>Código aplicado: <strong><?php echo htmlspecialchars($totals['promo_code_applied']); ?></strong></span>
-                                    </div>
-                                    <a href="../../controllers/CartController.php?action=remove_promo" class="remove-promo">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                </div>
-                            <?php else: ?>
-                                <form method="POST" action="../../controllers/CartController.php?action=apply_promo" class="promo-form">
-                                    <div class="promo-code">
-                                        <input type="text" name="promo_code" placeholder="Ingresa tu código" maxlength="20">
-                                        <button type="submit">Aplicar</button>
-                                    </div>
-                                </form>
-                            <?php endif; ?>
-                            
-                            <?php if ($promoMessage): ?>
-                                <div class="promo-message <?php echo strpos($promoMessage, 'éxito') !== false ? 'success' : 'error'; ?>">
-                                    <?php echo htmlspecialchars($promoMessage); ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <!-- Totals -->
-                        <div class="summary-totals">
-                            <div class="summary-row">
-                                <span>Subtotal (<?php echo count($cart_items); ?> curso<?php echo count($cart_items) > 1 ? 's' : ''; ?>)</span>
-                                <span>$<?php echo htmlspecialchars(number_format($totals['subtotal'], 2)); ?></span>
-                            </div>
-                            
-                            <?php if ($totals['discount'] > 0): ?>
-                                <div class="summary-row discount">
-                                    <span>Descuento</span>
-                                    <span>-$<?php echo htmlspecialchars(number_format($totals['discount'], 2)); ?></span>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <div class="summary-row">
-                                <span>Impuesto (7%)</span>
-                                <span>$<?php echo htmlspecialchars(number_format($totals['tax'], 2)); ?></span>
-                            </div>
-                            
-                            <div class="summary-row total">
-                                <span>Total</span>
-                                <span>$<?php echo htmlspecialchars(number_format($totals['total'], 2)); ?></span>
-                            </div>
-                        </div>
-
-                        <!-- Checkout Button -->
-                        <?php if (AuthController::isAuthenticated()): ?>
-                            <a href="../../controllers/PaymentController.php?action=checkout" class="checkout-btn">
-                                <i class="fas fa-credit-card"></i>
-                                Proceder al Pago
-                            </a>
-                        <?php else: ?>
-                            <div class="login-required">
-                                <p><i class="fas fa-info-circle"></i> Debes iniciar sesión para continuar</p>
-                                <a href="../../login.php?redirect=cart" class="checkout-btn">
-                                    <i class="fas fa-sign-in-alt"></i>
-                                    Iniciar Sesión
-                                </a>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <!-- Additional Actions -->
-                        <div class="cart-actions">
-                            <a href="../../controllers/CartController.php?action=clear" 
-                               class="clear-cart"
-                               onclick="return confirm('¿Estás seguro de que quieres vaciar el carrito?')">
-                                <i class="fas fa-trash-alt"></i>
-                                Vaciar Carrito
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Continue Shopping -->
-                <div class="continue-shopping-section">
-                    <a href="all-courses.php" class="continue-shopping">
-                        <i class="fas fa-arrow-left"></i>
-                        Seguir Comprando
-                    </a>
-                </div>
-
-                <!-- Security Features -->
-                <div class="security-features">
-                    <div class="security-item">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Pago 100% Seguro</span>
-                    </div>
-                    <div class="security-item">
-                        <i class="fas fa-medal"></i>
-                        <span>Garantía de 30 días</span>
-                    </div>
-                    <div class="security-item">
-                        <i class="fas fa-headset"></i>
-                        <span>Soporte 24/7</span>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2024 El Profesor Hernán. Todos los derechos reservados.</p>
-            <div class="footer-links">
-                <a href="home.php">Inicio</a>
-                <a href="all-courses.php">Cursos</a>
-                <a href="cart.php">Carrito</a>
             </div>
-            <p>Aprende inglés con los mejores cursos online</p>
-        </div>
-    </footer>
+        <?php endif; ?>
+    </div>
 
-    <!-- Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="../../auth/firebase-config.js"></script>
-    <script src="../../auth/auth.js"></script>
+    <script>
+        function removeFromCart(courseId) {
+            if (confirm('¿Estás seguro de que quieres eliminar este curso del carrito?')) {
+                fetch('../../controllers/CartController.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=remove&id=${courseId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Error al eliminar el curso');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al eliminar el curso');
+                });
+            }
+        }
+
+        function proceedToCheckout() {
+            window.location.href = 'checkout.php';
+        }
+    </script>
 </body>
 </html>
