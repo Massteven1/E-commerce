@@ -229,7 +229,7 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
     
     switch ($action) {
         case 'add':
-            $playlist_id = $_GET['id'] ?? 0;
+            $playlist_id = $_POST['id'] ?? 0;
             if ($playlist_id > 0) {
                 $controller->add($playlist_id);
             } else {
@@ -272,6 +272,12 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
             exit();
             break;
             
+        case 'count':
+            $count = self::getCartCount();
+            echo json_encode(['count' => $count]);
+            exit();
+            break;
+
         case 'view':
         default:
             // Si se accede directamente a CartController.php sin una acción específica,

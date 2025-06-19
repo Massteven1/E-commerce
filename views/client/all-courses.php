@@ -9,11 +9,13 @@ require_once __DIR__ . '/../../config/Database.php';
 require_once __DIR__ . '/../../models/Playlist.php';
 require_once __DIR__ . '/../../models/UserCourse.php';
 require_once __DIR__ . '/../../controllers/AuthController.php';
+require_once __DIR__ . '/../../controllers/CartController.php';
 
 use Config\Database;
 use Models\Playlist;
 use Models\UserCourse;
 use Controllers\AuthController;
+use Controllers\CartController;
 
 // Inicializar conexión a la base de datos
 $database = new Database();
@@ -34,7 +36,10 @@ try {
 // Obtener cursos del usuario si está autenticado
 $userCourses = [];
 $userCourseIds = [];
-if (AuthController::isAuthenticated()) {
+$isAuthenticated = AuthController::isAuthenticated();
+$currentUser = null;
+
+if ($isAuthenticated) {
     try {
         $currentUser = AuthController::getCurrentUser();
         $userCoursesResult = $userCourseModel->readByUserId($currentUser['id']);
@@ -45,6 +50,9 @@ if (AuthController::isAuthenticated()) {
         $userCourseIds = [];
     }
 }
+
+// Obtener contador del carrito
+$cartCount = isset($_SESSION['cart']) ? count($_SESSION['cart']) : 0;
 
 // Filtros
 $levelFilter = $_GET['level'] ?? '';
@@ -68,34 +76,224 @@ if ($levelFilter || $searchQuery) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Todos los Cursos - El Profesor Hernán</title>
-    <link rel="stylesheet" href="../../public/css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #3b82f6;
-            --primary-light: #dbeafe;
-            --secondary-color: #6b7280;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --info-color: #06b6d4;
+            --primary-color: #8a56e2;
+            --purple-color: #6c5ce7;
+            --teal-color: #56e2c6;
+            --orange-color: #fd79a8;
+            --red-color: #ff5a5a;
             --white: #ffffff;
-            --light-bg: #f8fafc;
-            --text-color: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --light-gray: #f8f9fa;
+            --dark-gray: #6c757d;
+            --text-color: #2d3748;
+            --text-muted: #718096;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --border-radius-sm: 6px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--light-bg);
-            margin: 0;
-            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-color);
             line-height: 1.6;
         }
 
+        /* Header Styles */
+        .header {
+            background: var(--white);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-sm);
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color);
+            background-color: rgba(138, 86, 226, 0.1);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .cart-link {
+            position: relative;
+            color: var(--text-color);
+            font-size: 1.2rem;
+            text-decoration: none;
+            padding: 0.5rem;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition);
+        }
+
+        .cart-link:hover {
+            color: var(--primary-color);
+            background-color: rgba(138, 86, 226, 0.1);
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--red-color);
+            color: var(--white);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.4rem;
+            border-radius: 50%;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition);
+        }
+
+        .user-button:hover {
+            background-color: var(--light-gray);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--white);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: var(--transition);
+            z-index: 1000;
+        }
+
+        .user-menu:hover .user-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: var(--transition);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--light-gray);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--purple-color);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        /* Main Content */
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -115,12 +313,18 @@ if ($levelFilter || $searchQuery) {
             font-size: 2.5rem;
             margin-bottom: 1rem;
             color: var(--text-color);
+            font-weight: 700;
+        }
+
+        .page-header p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
         }
 
         .filters-section {
             background: var(--white);
             padding: 2rem;
-            border-radius: 12px;
+            border-radius: var(--border-radius-lg);
             box-shadow: var(--shadow-sm);
             margin-bottom: 2rem;
         }
@@ -141,18 +345,29 @@ if ($levelFilter || $searchQuery) {
         .search-input {
             flex: 1;
             padding: 0.75rem 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px 0 0 8px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
             font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
         }
 
         .search-btn {
             padding: 0.75rem 1rem;
             background: var(--primary-color);
-            color: white;
+            color: var(--white);
             border: none;
-            border-radius: 0 8px 8px 0;
+            border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
             cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .search-btn:hover {
+            background: var(--purple-color);
         }
 
         .filter-group {
@@ -163,18 +378,32 @@ if ($levelFilter || $searchQuery) {
 
         .filter-select {
             padding: 0.75rem 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
             font-size: 1rem;
+            background: var(--white);
+            transition: var(--transition);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
         }
 
         .filter-btn {
             padding: 0.75rem 1.5rem;
-            background: var(--secondary-color);
-            color: white;
+            background: var(--teal-color);
+            color: var(--white);
             border: none;
-            border-radius: 8px;
+            border-radius: var(--border-radius-sm);
             cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .filter-btn:hover {
+            background: #48b090;
+            transform: translateY(-1px);
         }
 
         .courses-results {
@@ -184,6 +413,7 @@ if ($levelFilter || $searchQuery) {
         .results-info {
             margin-bottom: 1.5rem;
             color: var(--text-muted);
+            font-weight: 500;
         }
 
         .courses-grid {
@@ -194,10 +424,10 @@ if ($levelFilter || $searchQuery) {
 
         .course-card {
             background: var(--white);
-            border-radius: 12px;
+            border-radius: var(--border-radius-lg);
             overflow: hidden;
             box-shadow: var(--shadow-sm);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: var(--transition);
         }
 
         .course-card:hover {
@@ -215,6 +445,11 @@ if ($levelFilter || $searchQuery) {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: var(--transition);
+        }
+
+        .course-card:hover .course-image img {
+            transform: scale(1.05);
         }
 
         .course-level {
@@ -222,7 +457,7 @@ if ($levelFilter || $searchQuery) {
             top: 1rem;
             left: 1rem;
             background: var(--primary-color);
-            color: white;
+            color: var(--white);
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
             font-size: 0.875rem;
@@ -233,8 +468,8 @@ if ($levelFilter || $searchQuery) {
             position: absolute;
             top: 1rem;
             right: 1rem;
-            background: var(--success-color);
-            color: white;
+            background: var(--teal-color);
+            color: var(--white);
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
             font-size: 0.875rem;
@@ -245,13 +480,16 @@ if ($levelFilter || $searchQuery) {
             padding: 1.5rem;
         }
 
+        .course-title {
+            margin-bottom: 1rem;
+        }
+
         .course-title a {
             color: var(--text-color);
             text-decoration: none;
             font-size: 1.25rem;
             font-weight: 600;
-            margin-bottom: 1rem;
-            display: block;
+            transition: var(--transition);
         }
 
         .course-title a:hover {
@@ -268,87 +506,63 @@ if ($levelFilter || $searchQuery) {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1rem;
         }
 
         .price {
             font-size: 1.25rem;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--primary-color);
         }
 
         .price.free {
-            color: var(--success-color);
+            color: var(--teal-color);
         }
 
         .course-actions {
             display: flex;
             gap: 0.5rem;
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s ease;
-            font-size: 0.875rem;
-        }
-
-        .btn-primary {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: var(--primary-color);
-            border: 1px solid var(--primary-color);
-        }
-
-        .btn-outline:hover {
-            background: var(--primary-color);
-            color: white;
+            flex-wrap: wrap;
         }
 
         .no-results {
             grid-column: 1 / -1;
             text-align: center;
-            padding: 3rem;
+            padding: 4rem 2rem;
             color: var(--text-muted);
         }
 
         .no-results i {
-            font-size: 3rem;
+            font-size: 4rem;
             margin-bottom: 1rem;
+            opacity: 0.5;
         }
 
+        .no-results h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Notification Styles */
         .notification {
             position: fixed;
             top: 2rem;
             right: 2rem;
             padding: 1rem 1.5rem;
-            border-radius: 8px;
-            color: white;
+            border-radius: var(--border-radius-md);
+            color: var(--white);
             font-weight: 600;
             z-index: 1000;
             animation: slideIn 0.3s ease;
+            box-shadow: var(--shadow-lg);
         }
 
         .notification.success {
-            background: var(--success-color);
+            background: var(--teal-color);
         }
 
         .notification.error {
-            background: var(--danger-color);
+            background: var(--red-color);
         }
 
         @keyframes slideIn {
@@ -362,7 +576,46 @@ if ($levelFilter || $searchQuery) {
             }
         }
 
+        /* Loading States */
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            position: relative;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
+            .header-container {
+                padding: 0 1rem;
+                height: 60px;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+
             .filters-form {
                 flex-direction: column;
                 align-items: stretch;
@@ -379,11 +632,88 @@ if ($levelFilter || $searchQuery) {
             .courses-grid {
                 grid-template-columns: 1fr;
             }
+
+            .course-footer {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .course-actions {
+                justify-content: center;
+            }
+
+            .page-header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 0.5rem;
+            }
+
+            .filters-section {
+                padding: 1rem;
+            }
+
+            .course-content {
+                padding: 1rem;
+            }
         }
     </style>
 </head>
 <body>
-    <?php include_once  '../inc/header.php'; ?>
+    <!-- Header dedicado -->
+    <header class="header">
+        <div class="header-container">
+            <a href="../../index.php" class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                El Profesor Hernán
+            </a>
+            
+            <nav class="nav-menu">
+                <a href="../../index.php" class="nav-link">Inicio</a>
+                <a href="all-courses.php" class="nav-link">Cursos</a>
+                <?php if ($isAuthenticated): ?>
+                    <a href="purchase-history.php" class="nav-link">Mis Compras</a>
+                <?php endif; ?>
+            </nav>
+            
+            <div class="nav-actions">
+                <a href="cart.php" class="cart-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="cart-count"><?php echo $cartCount; ?></span>
+                </a>
+                
+                <?php if ($isAuthenticated): ?>
+                    <div class="user-menu">
+                        <button class="user-button">
+                            <i class="fas fa-user-circle"></i>
+                            <span><?php echo htmlspecialchars($currentUser['name'] ?? 'Usuario'); ?></span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="user-dropdown">
+                            <a href="profile.php" class="dropdown-item">
+                                <i class="fas fa-user"></i> Perfil
+                            </a>
+                            <?php if (($currentUser['role'] ?? '') === 'admin'): ?>
+                                <a href="../admin/dashboard.php" class="dropdown-item">
+                                    <i class="fas fa-cog"></i> Panel Admin
+                                </a>
+                            <?php endif; ?>
+                            <a href="../../logout.php" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                            </a>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <a href="../../login.php" class="btn btn-primary">Iniciar Sesión</a>
+                    <a href="../../signup.php" class="btn btn-outline">Registrarse</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </header>
 
     <main class="main-content">
         <div class="container">
@@ -442,13 +772,15 @@ if ($levelFilter || $searchQuery) {
                             $isOwned = in_array($playlist['id'], $userCourseIds);
                             $imageUrl = !empty($playlist['cover_image']) ? 
                                 '../../' . $playlist['cover_image'] : 
-                                '/placeholder.svg?height=200&width=300';
+                                'https://via.placeholder.com/300x200/8a56e2/ffffff?text=Curso';
                             ?>
                             <div class="course-card">
                                 <div class="course-image">
                                     <img src="<?php echo htmlspecialchars($imageUrl); ?>" 
                                          alt="<?php echo htmlspecialchars($playlist['name'] ?? ''); ?>">
-                                    <div class="course-level"><?php echo htmlspecialchars($playlist['level'] ?? ''); ?></div>
+                                    <?php if (!empty($playlist['level'])): ?>
+                                        <div class="course-level"><?php echo htmlspecialchars($playlist['level']); ?></div>
+                                    <?php endif; ?>
                                     <?php if ($isOwned): ?>
                                         <div class="owned-badge">
                                             <i class="fas fa-check"></i> Adquirido
@@ -489,9 +821,9 @@ if ($levelFilter || $searchQuery) {
                                             <?php else: ?>
                                                 <a href="course-detail.php?id=<?php echo $playlist['id']; ?>" 
                                                    class="btn btn-outline">Ver Detalles</a>
-                                                <?php if (AuthController::isAuthenticated()): ?>
+                                                <?php if ($isAuthenticated): ?>
                                                     <button onclick="addToCart(<?php echo $playlist['id']; ?>)" 
-                                                            class="btn btn-primary">
+                                                            class="btn btn-primary add-to-cart-btn">
                                                         <i class="fas fa-cart-plus"></i> Agregar
                                                     </button>
                                                 <?php endif; ?>
@@ -507,15 +839,16 @@ if ($levelFilter || $searchQuery) {
         </div>
     </main>
 
-    <?php include_once __DIR__ . '/../../includes/footer.php'; ?>
-
     <script>
     function addToCart(courseId) {
-        // Mostrar indicador de carga
-        const button = event.target;
-        const originalText = button.innerHTML;
+        // Obtener el botón que se clickeó
+        const button = event.target.closest('.add-to-cart-btn');
+        const originalHTML = button.innerHTML;
+        
+        // Mostrar estado de carga
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Agregando...';
         button.disabled = true;
+        button.classList.add('loading');
 
         // Crear FormData para enviar la solicitud
         const formData = new FormData();
@@ -528,25 +861,48 @@ if ($levelFilter || $searchQuery) {
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.text();
         })
-        .then(data => {
-            showNotification('Curso agregado al carrito exitosamente', 'success');
-            updateCartCount();
+        .then(text => {
+            console.log('Raw response:', text); // Para debugging
             
-            // Restaurar botón
-            button.innerHTML = originalText;
-            button.disabled = false;
+            // Intentar parsear como JSON
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error('Error parsing JSON:', e);
+                throw new Error('Respuesta inválida del servidor');
+            }
+            
+            if (data.status === 'success') {
+                showNotification(data.message || 'Curso agregado al carrito exitosamente', 'success');
+                updateCartCount();
+                
+                // Cambiar el botón a "Agregado"
+                button.innerHTML = '<i class="fas fa-check"></i> Agregado';
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                    button.classList.remove('loading');
+                }, 2000);
+            } else {
+                showNotification(data.message || 'Error al agregar al carrito', 'error');
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+                button.classList.remove('loading');
+            }
         })
         .catch(error => {
             console.error('Error:', error);
             showNotification('Error al agregar al carrito. Inténtalo de nuevo.', 'error');
             
             // Restaurar botón
-            button.innerHTML = originalText;
+            button.innerHTML = originalHTML;
             button.disabled = false;
+            button.classList.remove('loading');
         });
     }
 
@@ -557,29 +913,40 @@ if ($levelFilter || $searchQuery) {
 
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
-        notification.textContent = message;
+        notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
         document.body.appendChild(notification);
         
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.remove();
             }
-        }, 3000);
+        }, 4000);
     }
 
     function updateCartCount() {
         fetch('../../controllers/CartController.php?action=count')
             .then(response => response.json())
             .then(data => {
-                const cartCount = document.querySelector('.cart-count');
+                const cartCount = document.getElementById('cart-count');
                 if (cartCount && data.count !== undefined) {
                     cartCount.textContent = data.count;
+                    
+                    // Animación del contador
+                    cartCount.style.transform = 'scale(1.3)';
+                    setTimeout(() => {
+                        cartCount.style.transform = 'scale(1)';
+                    }, 200);
                 }
             })
             .catch(error => {
                 console.error('Error updating cart count:', error);
             });
     }
+
+    // Actualizar contador del carrito al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCartCount();
+    });
     </script>
 </body>
 </html>
