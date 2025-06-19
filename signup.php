@@ -3,9 +3,14 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+// Incluir el controlador de autenticación
+require_once 'controllers/AuthController.php';
+
+use Controllers\AuthController; // Usar namespace
+
 // Redirigir si ya está logueado
-if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
-    if ($_SESSION['user_role'] === 'admin') {
+if (AuthController::isAuthenticated()) {
+    if (AuthController::isAdmin()) {
         header('Location: views/admin/index.php?controller=admin&action=dashboard');
     } else {
         header('Location: views/client/home.php');
@@ -15,13 +20,11 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
 
 // Procesar registro si es POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    require_once 'controllers/AuthController.php';
     $authController = new AuthController();
     $authController->register();
 }
 
 // Obtener mensaje flash
-require_once 'controllers/AuthController.php';
 $flash_message = AuthController::getFlashMessage();
 ?>
 <!DOCTYPE html>
@@ -57,7 +60,7 @@ $flash_message = AuthController::getFlashMessage();
                                 <label for="firstName">Nombre</label>
                                 <div class="input-with-icon">
                                     <i class="fas fa-user"></i>
-                                    <input type="text" id="firstName" name="firstName" placeholder="Ingresa tu nombre" required>
+                                    <input type="text" id="firstName" name="first_name" placeholder="Ingresa tu nombre" required>
                                 </div>
                                 <div class="error-message" id="firstNameError"></div>
                             </div>
@@ -66,7 +69,7 @@ $flash_message = AuthController::getFlashMessage();
                                 <label for="lastName">Apellido</label>
                                 <div class="input-with-icon">
                                     <i class="fas fa-user"></i>
-                                    <input type="text" id="lastName" name="lastName" placeholder="Ingresa tu apellido" required>
+                                    <input type="text" id="lastName" name="last_name" placeholder="Ingresa tu apellido" required>
                                 </div>
                                 <div class="error-message" id="lastNameError"></div>
                             </div>
@@ -102,7 +105,7 @@ $flash_message = AuthController::getFlashMessage();
                         <div class="form-group">
                             <label for="confirmPassword">Confirmar Contraseña</label>
                             <div class="input-with-icon">
-                                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirma tu contraseña" required>
+                                <input type="password" id="confirmPassword" name="confirm_password" placeholder="Confirma tu contraseña" required>
                                 <i class="fas fa-eye toggle-password"></i>
                             </div>
                             <div class="error-message" id="confirmPasswordError"></div>

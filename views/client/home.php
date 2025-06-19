@@ -3,30 +3,56 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+// Cargar dependencias
+require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../config/Database.php';
 require_once __DIR__ . '/../../models/Playlist.php';
-require_once __DIR__ . '/../../models/UserCourse.php'; // Añadido para la nueva funcionalidad
+require_once __DIR__ . '/../../models/UserCourse.php';
 require_once __DIR__ . '/../../controllers/CartController.php';
-require_once __DIR__ . '/../../controllers/AuthController.php'; // Añadido para la nueva funcionalidad
+
+use Controllers\AuthController;
+use Config\Database;
+use Models\Playlist;
+use Models\UserCourse;
+use Controllers\CartController;
+
+// Verificar autenticación
+if (!AuthController::isAuthenticated()) {
+    header('Location: ../../login.php'); // Redirigir a login si no está autenticado
+    exit();
+}
 
 $database = new Database();
 $db = $database->getConnection();
 $playlistModel = new Playlist($db);
-$userCourseModel = new UserCourse($db); // Instancia del modelo UserCourse
+$userCourseModel = new UserCourse($db);
+
+// Obtener usuario actual
+$currentUser = AuthController::getCurrentUser();
+$userId = $currentUser['id'];
+
+// Obtener todos los cursos
+$allPlaylists = $playlistModel->readAll();
+
+// Obtener cursos ya comprados por el usuario
+$purchasedCourses = $userCourseModel->readByUserId($userId);
+$purchasedIds = array_column($purchasedCourses, 'playlist_id');
+
+// Filtrar cursos disponibles (no comprados)
+$availablePlaylists = array_filter($allPlaylists, function($playlist) use ($purchasedIds) {
+    return !in_array($playlist['id'], $purchasedIds);
+});
 
 // Obtener las 3 playlists más vendidas (o simplemente las primeras 3 si no hay lógica de ventas)
-$best_sellers = $playlistModel->readAll();
+// NOTA: Para una lógica real de "más vendidos", necesitarías un campo en la DB o un sistema de seguimiento.
+// Por ahora, se toman los primeros 3 cursos disponibles o comprados.
+$best_sellers = array_slice(array_merge($purchasedCourses, $availablePlaylists), 0, 3);
 shuffle($best_sellers); // Mezclar para simular "más vendidos" si no hay datos reales
-$best_sellers = array_slice($best_sellers, 0, 3);
 
 // Obtener playlists por nivel para la sección "Nuestros Cursos por Nivel"
 $playlists_by_level = [];
-$all_playlists = $playlistModel->readAll();
-foreach ($all_playlists as $playlist) {
-    $level = 'Mixto'; // Default
-    if (preg_match('/(A1|A2|B1|B2|C1)/', $playlist['name'], $matches)) {
-        $level = $matches[0];
-    }
+foreach ($allPlaylists as $playlist) {
+    $level = $playlist['level'] ?? 'Mixto'; // Usar el campo 'level' directamente
     $playlists_by_level[$level][] = $playlist;
 }
 
@@ -40,11 +66,11 @@ foreach ($ordered_levels as $level) {
 }
 
 // Obtener el conteo del carrito para el header
-$cart_count = isset($_SESSION['cart']) ? count($_SESSION['cart']) : 0;
+$cartController = new CartController();
+$cart_count = $cartController->getCartCount();
 
-// Lógica de autenticación para la nueva funcionalidad
-$isLoggedIn = AuthController::isAuthenticated();
-$currentUserId = $isLoggedIn ? AuthController::getCurrentUser()['id'] : null;
+// Obtener mensaje flash si existe
+$flashMessage = AuthController::getFlashMessage();
 ?>
 
 <!DOCTYPE html>
@@ -54,7 +80,6 @@ $currentUserId = $isLoggedIn ? AuthController::getCurrentUser()['id'] : null;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>El Profesor Hernán - Cursos de Inglés</title>
     <link rel="stylesheet" href="../../public/css/styles.css">
-    <link rel="stylesheet" href="../../public/css/course-detail.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -69,7 +94,7 @@ $currentUserId = $isLoggedIn ? AuthController::getCurrentUser()['id'] : null;
             
             <nav class="nav">
                 <ul>
-                    <li><a href="home.php">Inicio</a></li>
+                    <li><a href="home.php" class="active">Inicio</a></li>
                     <li><a href="all-courses.php">Cursos</a></li>
                     <li><a href="cart.php">
                         <i class="fas fa-shopping-cart"></i>
@@ -82,16 +107,12 @@ $currentUserId = $isLoggedIn ? AuthController::getCurrentUser()['id'] : null;
             </nav>
             
             <div class="auth-links">
-                <?php if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']): ?>
-                    <span>Hola, <?php echo htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['user_email']); ?></span>
-                    <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                        <a href="../admin/index.php?controller=admin&action=dashboard" class="btn-admin">Panel Admin</a>
-                    <?php endif; ?>
-                    <a href="../../logout.php" class="btn-logout">Cerrar Sesión</a>
-                <?php else: ?>
-                    <a href="../../login.php" class="btn-login">Iniciar Sesión</a>
-                    <a href="../../signup.php" class="btn-signup">Registrarse</a>
+                <span>Hola, <?php echo htmlspecialchars($currentUser['name']); ?></span>
+                <?php if ($currentUser['role'] === 'admin'): ?>
+                    <a href="../admin/index.php?controller=admin&action=dashboard" class="btn-admin">Panel Admin</a>
                 <?php endif; ?>
+                <a href="purchase-history.php" class="btn-history">Mis Cursos</a>
+                <a href="../../logout.php" class="btn-logout">Cerrar Sesión</a>
             </div>
         </div>
     </header>
@@ -147,10 +168,7 @@ $currentUserId = $isLoggedIn ? AuthController::getCurrentUser()['id'] : null;
                             <?php endif; ?>
                             <div class="course-overlay">
                                 <?php
-                                $hasAccess = false;
-                                if ($isLoggedIn && $currentUserId) {
-                                    $hasAccess = $userCourseModel->hasAccess($currentUserId, $playlist['id']);
-                                }
+                                $hasAccess = $userCourseModel->hasAccess($userId, $playlist['id']);
                                 ?>
                                 <?php if ($hasAccess): ?>
                                     <a href="course-detail.php?id=<?php echo htmlspecialchars($playlist['id']); ?>" class="btn-overlay">Acceder al Curso</a>
@@ -161,10 +179,7 @@ $currentUserId = $isLoggedIn ? AuthController::getCurrentUser()['id'] : null;
                         </div>
                         <div class="product-details">
                             <span class="product-catagory">
-                                <?php 
-                                    preg_match('/(A|B|C)\d/', $playlist['name'], $matches);
-                                    echo $matches[0] ?? 'General';
-                                ?>
+                                <?php echo htmlspecialchars($playlist['level'] ?? 'General'); ?>
                             </span>
                             <h4><a href="course-detail.php?id=<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
                             <p><?php echo htmlspecialchars($playlist['description'] ?: 'Curso completo de inglés para todos los niveles.'); ?></p>
@@ -173,7 +188,7 @@ $currentUserId = $isLoggedIn ? AuthController::getCurrentUser()['id'] : null;
                                 <?php if ($hasAccess): ?>
                                     <a href="course-detail.php?id=<?php echo htmlspecialchars($playlist['id']); ?>" class="add-to-cart-btn">Acceder</a>
                                 <?php else: ?>
-                                    <a href="cart.php?action=add&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="add-to-cart-btn">Añadir al Carrito</a>
+                                    <a href="../../controllers/CartController.php?action=add&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="add-to-cart-btn">Añadir al Carrito</a>
                                 <?php endif; ?>
                             </div>
                         </div>

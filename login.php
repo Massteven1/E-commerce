@@ -3,9 +3,14 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+// Incluir el controlador de autenticación
+require_once 'controllers/AuthController.php';
+
+use Controllers\AuthController; // Usar namespace
+
 // Redirigir si ya está logueado
-if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
-    if ($_SESSION['user_role'] === 'admin') {
+if (AuthController::isAuthenticated()) {
+    if (AuthController::isAdmin()) {
         header('Location: views/admin/index.php?controller=admin&action=dashboard');
     } else {
         header('Location: views/client/home.php');
@@ -15,13 +20,11 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
 
 // Procesar login si es POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    require_once 'controllers/AuthController.php';
     $authController = new AuthController();
     $authController->login();
 }
 
 // Obtener mensaje flash
-require_once 'controllers/AuthController.php';
 $flash_message = AuthController::getFlashMessage();
 ?>
 <!DOCTYPE html>

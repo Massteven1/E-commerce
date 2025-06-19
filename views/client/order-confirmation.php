@@ -3,10 +3,19 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+// Incluir dependencias necesarias
+require_once __DIR__ . '/../../controllers/AuthController.php';
 require_once __DIR__ . '/../../config/Database.php';
 require_once __DIR__ . '/../../models/Order.php';
+require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/Playlist.php';
-require_once __DIR__ . '/../../controllers/AuthController.php';
+
+// Usar los namespaces correctos
+use Controllers\AuthController;
+use Config\Database;
+use Models\Order;
+use Models\User;
+use Models\Playlist;
 
 // Verificar autenticación
 if (!AuthController::isAuthenticated()) {
@@ -14,135 +23,142 @@ if (!AuthController::isAuthenticated()) {
     exit();
 }
 
-$currentUser = AuthController::getCurrentUser();
-$userId = $currentUser['id'];
+$user = AuthController::getCurrentUser();
 
-// Obtener el ID del pedido de la URL
-$orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
+// Obtener el ID del pedido desde la URL
+$order_id = $_GET['order_id'] ?? null;
 
-if ($orderId <= 0) {
+if (!$order_id || !is_numeric($order_id)) {
     header('Location: home.php');
     exit();
 }
 
-// Obtener detalles del pedido
+// Conectar a la base de datos
 $database = new Database();
 $db = $database->getConnection();
+
+// Obtener detalles del pedido
 $orderModel = new Order($db);
-$playlistModel = new Playlist($db);
+$order = $orderModel->getOrderById($order_id);
 
-$order = $orderModel->read($orderId);
-
-// Verificar que el pedido exista y pertenezca al usuario actual
-if (!$order || $order['user_id'] != $userId) {
+if (!$order || $order['user_id'] != $user['id']) {
     header('Location: home.php');
     exit();
 }
 
-// Obtener los cursos comprados en este pedido
-$query = "SELECT uc.*, p.name, p.description, p.price, p.cover_image 
-          FROM user_courses uc
-          JOIN playlists p ON uc.playlist_id = p.id
-          WHERE uc.order_id = :order_id";
+// Obtener detalles de los cursos del pedido
+$orderItems = $orderModel->getOrderItems($order_id);
 
-$stmt = $db->prepare($query);
-$stmt->bindParam(':order_id', $orderId);
-$stmt->execute();
-$purchasedCourses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Calcular la ruta base para los recursos
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'];
+$scriptName = $_SERVER['SCRIPT_NAME'];
 
-// Obtener mensaje flash si existe
-$flashMessage = AuthController::getFlashMessage();
+// Obtener la ruta base del proyecto
+if (strpos($scriptName, '/views/client/') !== false) {
+    $basePath = str_replace('/views/client/order-confirmation.php', '', $scriptName);
+} else {
+    $basePath = '';
+}
+
+$baseUrl = $protocol . '://' . $host . $basePath;
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Profesor Hernán - Confirmación de Pedido</title>
-    <link rel="stylesheet" href="../../public/css/styles.css">
-    <link rel="stylesheet" href="../../public/css/course-detail.css">
+    <title>Confirmación de Pedido - El Profesor Hernán</title>
+    <link rel="stylesheet" href="<?php echo $baseUrl; ?>/public/css/styles.css">
+    <link rel="stylesheet" href="<?php echo $baseUrl; ?>/public/css/checkout-improvements.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .order-confirmation {
-            padding: 40px 0;
+        .confirmation-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
         
-        .confirmation-container {
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            padding: 30px;
-            max-width: 800px;
-            margin: 0 auto;
+        .success-icon {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .success-icon i {
+            font-size: 4rem;
+            color: #28a745;
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 50%;
+            border: 3px solid #28a745;
         }
         
         .confirmation-header {
             text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .confirmation-header i {
-            font-size: 60px;
-            color: var(--green-color);
-            margin-bottom: 20px;
-            display: block;
+            margin-bottom: 2rem;
         }
         
         .confirmation-header h1 {
-            color: var(--green-color);
-            margin-bottom: 10px;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .confirmation-header p {
+            color: #6c757d;
+            font-size: 1.1rem;
         }
         
         .order-details {
-            margin-bottom: 30px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 20px;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
         }
         
-        .order-details .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
+        .order-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
         
-        .order-details .detail-label {
-            font-weight: 600;
-            color: var(--text-color);
+        .info-item {
+            text-align: center;
         }
         
-        .purchased-courses {
-            margin-bottom: 30px;
+        .info-item strong {
+            display: block;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
         }
         
-        .purchased-courses h2 {
-            margin-bottom: 20px;
-            color: var(--primary-color);
+        .info-item span {
+            color: #6c757d;
+        }
+        
+        .courses-list {
+            margin-top: 1.5rem;
         }
         
         .course-item {
             display: flex;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
-        .course-item:last-child {
-            border-bottom: none;
-        }
-        
-        .course-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-right: 15px;
-        }
-        
-        .course-image img {
-            width: 100%;
-            height: 100%;
+        .course-item img {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            margin-right: 1rem;
             object-fit: cover;
         }
         
@@ -150,70 +166,91 @@ $flashMessage = AuthController::getFlashMessage();
             flex: 1;
         }
         
-        .course-info h3 {
-            margin: 0 0 5px;
-            font-size: 18px;
+        .course-info h4 {
+            margin: 0 0 0.5rem 0;
+            color: #2c3e50;
         }
         
         .course-info p {
-            margin: 0 0 10px;
-            color: var(--text-light);
-            font-size: 14px;
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.9rem;
         }
         
         .course-price {
-            font-weight: 600;
-            color: var(--primary-color);
+            font-weight: bold;
+            color: #28a745;
+            font-size: 1.1rem;
         }
         
-        .course-actions {
-            margin-top: 10px;
+        .total-section {
+            border-top: 2px solid #dee2e6;
+            padding-top: 1rem;
+            text-align: right;
         }
         
-        .btn-access {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-size: 14px;
+        .total-amount {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .action-buttons {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        
+        .btn {
             display: inline-block;
-        }
-        
-        .btn-access:hover {
-            background-color: var(--primary-dark);
-        }
-        
-        .confirmation-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-        }
-        
-        .btn-continue-shopping {
-            background-color: var(--secondary-color);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 12px 30px;
+            margin: 0 10px;
+            border-radius: 25px;
             text-decoration: none;
-            display: inline-block;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
         
-        .btn-continue-shopping:hover {
-            background-color: var(--secondary-dark);
-        }
-        
-        .btn-view-courses {
-            background-color: var(--primary-color);
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            text-decoration: none;
-            display: inline-block;
         }
         
-        .btn-view-courses:hover {
-            background-color: var(--primary-dark);
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 2px solid #dee2e6;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .next-steps {
+            background: #e3f2fd;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+        }
+        
+        .next-steps h3 {
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+        
+        .next-steps ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .next-steps li {
+            padding: 0.5rem 0;
+            color: #424242;
+        }
+        
+        .next-steps li i {
+            color: #1976d2;
+            margin-right: 0.5rem;
         }
     </style>
 </head>
@@ -222,134 +259,150 @@ $flashMessage = AuthController::getFlashMessage();
     <header class="header">
         <div class="container">
             <div class="logo">
-                <img src="../../img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
-                <span>El Profesor Hernán</span>
+                <a href="<?php echo $baseUrl; ?>/index.php">
+                    <img src="<?php echo $baseUrl; ?>/img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                    <span>El Profesor Hernán</span>
+                </a>
             </div>
             
             <nav class="nav">
                 <ul>
                     <li><a href="home.php">Inicio</a></li>
-                    <li><a href="home.php">Cursos</a></li>
-                    <li><a href="cart.php">
-                        <i class="fas fa-shopping-cart"></i>
-                        Carrito
-                    </a></li>
+                    <li><a href="all-courses.php">Cursos</a></li>
+                    <li><a href="cart.php">Carrito</a></li>
                 </ul>
             </nav>
             
-            <div class="auth-links">
-                <?php if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']): ?>
-                    <span>Hola, <?php echo htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['user_email']); ?></span>
-                    <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                        <a href="../admin/index.php?controller=admin&action=dashboard" class="btn-admin">Panel Admin</a>
-                    <?php endif; ?>
-                    <a href="../../logout.php" class="btn-logout">Cerrar Sesión</a>
-                <?php else: ?>
-                    <a href="../../login.php" class="btn-login">Iniciar Sesión</a>
-                    <a href="../../signup.php" class="btn-signup">Registrarse</a>
-                <?php endif; ?>
+            <div class="user-menu">
+                <span>Hola, <?php echo htmlspecialchars($user['first_name']); ?></span>
+                <a href="<?php echo $baseUrl; ?>/logout.php" class="btn-logout">Cerrar Sesión</a>
             </div>
         </div>
     </header>
 
-    <!-- Order Confirmation Section -->
-    <section class="order-confirmation">
+    <main class="main-content">
         <div class="container">
-            <?php if ($flashMessage): ?>
-                <div class="promo-message <?php echo $flashMessage['type']; ?>" style="margin-bottom: 20px;">
-                    <?php echo $flashMessage['message']; ?>
-                </div>
-            <?php endif; ?>
-            
             <div class="confirmation-container">
-                <div class="confirmation-header">
+                <!-- Icono de éxito -->
+                <div class="success-icon">
                     <i class="fas fa-check-circle"></i>
-                    <h1>¡Gracias por tu compra!</h1>
-                    <p>Tu pedido ha sido confirmado y procesado correctamente.</p>
                 </div>
                 
+                <!-- Header de confirmación -->
+                <div class="confirmation-header">
+                    <h1>¡Pago Exitoso!</h1>
+                    <p>Tu pedido ha sido procesado correctamente</p>
+                </div>
+                
+                <!-- Detalles del pedido -->
                 <div class="order-details">
-                    <h2>Detalles del Pedido</h2>
-                    <div class="detail-row">
-                        <span class="detail-label">Número de Pedido:</span>
-                        <span><?php echo htmlspecialchars($order['id']); ?></span>
+                    <div class="order-info">
+                        <div class="info-item">
+                            <strong>Número de Pedido</strong>
+                            <span>#<?php echo htmlspecialchars($order['id']); ?></span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Fecha</strong>
+                            <span><?php echo date('d/m/Y H:i', strtotime($order['created_at'])); ?></span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Estado</strong>
+                            <span style="color: #28a745; font-weight: bold;">
+                                <?php echo ucfirst(htmlspecialchars($order['status'])); ?>
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Método de Pago</strong>
+                            <span>Tarjeta de Crédito</span>
+                        </div>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Fecha:</span>
-                        <span><?php echo date('d/m/Y H:i', strtotime($order['created_at'])); ?></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Total:</span>
-                        <span>$<?php echo htmlspecialchars(number_format($order['amount'], 2)); ?> <?php echo htmlspecialchars(strtoupper($order['currency'])); ?></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Estado:</span>
-                        <span style="color: var(--green-color); font-weight: 600;"><?php echo htmlspecialchars(ucfirst($order['status'])); ?></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">ID de Transacción:</span>
-                        <span><?php echo htmlspecialchars($order['transaction_id']); ?></span>
-                    </div>
-                </div>
-                
-                <div class="purchased-courses">
-                    <h2>Cursos Adquiridos</h2>
-                    <?php if (empty($purchasedCourses)): ?>
-                        <p>No se encontraron cursos en este pedido.</p>
-                    <?php else: ?>
-                        <?php foreach ($purchasedCourses as $course): ?>
-                            <div class="course-item">
-                                <div class="course-image">
-                                    <?php if (!empty($course['cover_image'])): ?>
-                                        <img src="../../<?php echo htmlspecialchars($course['cover_image']); ?>" alt="<?php echo htmlspecialchars($course['name']); ?>">
-                                    <?php else: ?>
-                                        <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
-                                    <?php endif; ?>
-                                </div>
-                                <div class="course-info">
-                                    <h3><?php echo htmlspecialchars($course['name']); ?></h3>
-                                    <p><?php echo htmlspecialchars(substr($course['description'], 0, 100) . (strlen($course['description']) > 100 ? '...' : '')); ?></p>
-                                    <div class="course-price">$<?php echo htmlspecialchars(number_format($course['price'], 2)); ?></div>
-                                    <div class="course-actions">
-                                        <a href="course-detail.php?id=<?php echo htmlspecialchars($course['playlist_id']); ?>" class="btn-access">
-                                            <i class="fas fa-play-circle"></i> Acceder al Curso
-                                        </a>
+                    
+                    <!-- Lista de cursos -->
+                    <div class="courses-list">
+                        <h3>Cursos Adquiridos:</h3>
+                        <?php if (!empty($orderItems)): ?>
+                            <?php foreach ($orderItems as $item): ?>
+                                <div class="course-item">
+                                    <img src="<?php echo !empty($item['cover_image']) ? $baseUrl . '/' . htmlspecialchars($item['cover_image']) : 'https://i.imgur.com/xdbHo4E.png'; ?>" 
+                                         alt="<?php echo htmlspecialchars($item['name']); ?>">
+                                    <div class="course-info">
+                                        <h4><?php echo htmlspecialchars($item['name']); ?></h4>
+                                        <p>Nivel <?php echo htmlspecialchars($item['level'] ?? 'Todos los niveles'); ?> - <?php echo htmlspecialchars($item['description'] ?: 'Curso completo de inglés'); ?></p>
+                                    </div>
+                                    <div class="course-price">
+                                        $<?php echo number_format($item['price'], 2); ?>
                                     </div>
                                 </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <p>No se encontraron detalles de los cursos.</p>
+                        <?php endif; ?>
+                        
+                        <!-- Total -->
+                        <div class="total-section">
+                            <div class="total-amount">
+                                Total: $<?php echo number_format($order['amount'], 2); ?>
                             </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="confirmation-actions">
-                    <a href="home.php" class="btn-continue-shopping">
-                        <i class="fas fa-arrow-left"></i> Seguir Comprando
+                <!-- Próximos pasos -->
+                <div class="next-steps">
+                    <h3><i class="fas fa-lightbulb"></i> Próximos Pasos</h3>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> Recibirás un email de confirmación con los detalles de tu compra</li>
+                        <li><i class="fas fa-play-circle"></i> Ya puedes acceder a tus cursos desde tu panel de estudiante</li>
+                        <li><i class="fas fa-graduation-cap"></i> Comienza tu aprendizaje cuando quieras, a tu propio ritmo</li>
+                        <li><i class="fas fa-headset"></i> Si tienes dudas, nuestro soporte está disponible 24/7</li>
+                    </ul>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="action-buttons">
+                    <a href="home.php" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Comenzar a Estudiar
                     </a>
-                    <a href="purchase-history.php" class="btn-view-courses">
-                        <i class="fas fa-history"></i> Ver Historial de Compras
+                    <a href="home.php" class="btn btn-secondary">
+                        <i class="fas fa-book"></i> Ver Más Cursos
                     </a>
                 </div>
             </div>
         </div>
-    </section>
+    </main>
 
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 El Profesor Hernán. Todos los derechos reservados.</p>
-            <div class="footer-links">
-                <a href="home.php">Inicio</a>
-                <a href="home.php">Cursos</a>
-                <a href="cart.php">Carrito</a>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo">
+                        <img src="<?php echo $baseUrl; ?>/img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                        <span>El Profesor Hernán</span>
+                    </div>
+                    <p>Tu mejor opción para aprender inglés online.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Enlaces</h4>
+                    <ul>
+                        <li><a href="home.php">Inicio</a></li>
+                        <li><a href="home.php">Cursos</a></li>
+                        <li><a href="cart.php">Carrito</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Soporte</h4>
+                    <ul>
+                        <li><a href="#">Centro de Ayuda</a></li>
+                        <li><a href="#">Contacto</a></li>
+                        <li><a href="#">FAQ</a></li>
+                    </ul>
+                </div>
             </div>
-            <p>Aprende inglés con los mejores cursos online</p>
+            <div class="footer-bottom">
+                <p>&copy; 2024 El Profesor Hernán. Todos los derechos reservados.</p>
+            </div>
         </div>
     </footer>
-
-    <!-- Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="../../auth/firebase-config.js"></script>
-    <script src="../../auth/auth.js"></script>
 </body>
 </html>

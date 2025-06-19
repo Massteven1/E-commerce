@@ -1,20 +1,20 @@
 <?php return array(
     'root' => array(
-        'name' => '__root__',
+        'name' => 'ecommerce-cursos/plataforma',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'e21d1959bf3dfea0ec24382c3524f4966f0ec167',
-        'type' => 'library',
+        'reference' => 'b43c489325aeeda888d7b18ad269039331c1d567',
+        'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
         'dev' => true,
     ),
     'versions' => array(
-        '__root__' => array(
+        'ecommerce-cursos/plataforma' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'e21d1959bf3dfea0ec24382c3524f4966f0ec167',
-            'type' => 'library',
+            'reference' => 'b43c489325aeeda888d7b18ad269039331c1d567',
+            'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
             'dev_requirement' => false,
