@@ -1,5 +1,4 @@
 <?php
-// Iniciar sesión si no está iniciada
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -13,21 +12,12 @@ use Config\Database;
 use Models\Playlist;
 use Controllers\AuthController;
 
-// Verificar si el usuario está logueado
+// Si el usuario ya está autenticado, redirigir a la página de inicio del cliente
 if (AuthController::isAuthenticated()) {
-    // Si está logueado, verificar el rol
-    if (AuthController::isAdmin()) {
-        // Redirigir al panel de administración
-        header('Location: views/admin/dashboard.php');
-        exit();
-    } else {
-        // Redirigir a la página principal del cliente
-        header('Location: views/client/home.php');
-        exit();
-    }
+    header('Location: views/client/home.php');
+    exit();
 }
 
-// Si no está logueado, mostrar la página de inicio pública
 $database = new Database();
 $db = $database->getConnection();
 $playlistModel = new Playlist($db);

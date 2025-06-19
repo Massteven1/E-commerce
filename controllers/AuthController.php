@@ -41,29 +41,12 @@ class AuthController {
             }
 
             $userModel = new User($this->db);
-            $userData = $userModel->findByEmail($email);
-            
-            if ($userData) {
-                // Poblar el objeto User con los datos encontrados
-                $userModel->id = $userData['id'];
-                $userModel->email = $userData['email'];
-                $userModel->password = $userData['password'];
-                $userModel->first_name = $userData['first_name'];
-                $userModel->last_name = $userData['last_name'];
-                $userModel->role = $userData['role'];
-                $userModel->is_active = $userData['is_active'];
-                
+            if ($userModel->findByEmail($email)) {
                 if ($userModel->verifyPassword($password)) {
                     $this->createSession($userModel);
                     $userModel->updateLastLogin(); // Actualizar la fecha del último login
                     self::setFlashMessage('success', '¡Bienvenido de nuevo!');
-                    
-                    // Redirigir según el rol
-                    if ($userModel->role === 'admin') {
-                        header('Location: views/admin/dashboard.php');
-                    } else {
-                        header('Location: views/client/home.php');
-                    }
+                    header('Location: views/client/home.php'); // Redirigir a la home del cliente
                     exit();
                 } else {
                     self::setFlashMessage('error', 'Contraseña incorrecta.');
@@ -184,16 +167,6 @@ class AuthController {
         return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
     }
 
-    // Alias para isAuthenticated() - para compatibilidad
-    public static function isLoggedIn() {
-        return self::isAuthenticated();
-    }
-
-    // Verificar si el usuario está logueado (método adicional)
-    public static function checkAuth() {
-        return self::isAuthenticated();
-    }
-
     // Obtener usuario actual
     public static function getCurrentUser() {
         if (session_status() == PHP_SESSION_NONE) {
@@ -221,48 +194,6 @@ class AuthController {
         return self::isAuthenticated() && ($_SESSION['user_role'] ?? '') === 'admin';
     }
 
-    // Verificar si el usuario es cliente
-    public static function isUser() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-        return self::isAuthenticated() && ($_SESSION['user_role'] ?? '') === 'user';
-    }
-
-    // Requerir autenticación - redirige si no está logueado
-    public static function requireAuth($redirectTo = 'login.php') {
-        if (!self::isAuthenticated()) {
-            self::setFlashMessage('error', 'Debes iniciar sesión para acceder a esta página.');
-            header('Location: ' . $redirectTo);
-            exit();
-        }
-    }
-
-    // Requerir rol de administrador
-    public static function requireAdmin($redirectTo = 'login.php') {
-        if (!self::isAdmin()) {
-            self::setFlashMessage('error', 'No tienes permisos para acceder a esta página.');
-            header('Location: ' . $redirectTo);
-            exit();
-        }
-    }
-
-    // Obtener ID del usuario actual
-    public static function getCurrentUserId() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-        return self::isAuthenticated() ? $_SESSION['user_id'] : null;
-    }
-
-    // Obtener rol del usuario actual
-    public static function getCurrentUserRole() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-        return self::isAuthenticated() ? ($_SESSION['user_role'] ?? 'user') : null;
-    }
-
     // Establecer mensaje flash
     public static function setFlashMessage($type, $message) {
         if (session_status() == PHP_SESSION_NONE) {
@@ -279,32 +210,6 @@ class AuthController {
         $message = $_SESSION['flash_message'] ?? null;
         unset($_SESSION['flash_message']);
         return $message;
-    }
-
-    // Verificar tiempo de sesión (opcional - para expirar sesiones)
-    public static function checkSessionTimeout($timeout = 3600) { // 1 hora por defecto
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        if (self::isAuthenticated()) {
-            $loginTime = $_SESSION['login_time'] ?? 0;
-            if (time() - $loginTime > $timeout) {
-                self::logout();
-                return false;
-            }
-            // Actualizar tiempo de actividad
-            $_SESSION['login_time'] = time();
-        }
-        return true;
-    }
-
-    // Regenerar ID de sesión para seguridad
-    public static function regenerateSession() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-        session_regenerate_id(true);
     }
 }
 ?>

@@ -1,5 +1,4 @@
 <?php
-
 namespace Middleware;
 
 require_once __DIR__ . '/../controllers/AuthController.php';
@@ -8,53 +7,44 @@ use Controllers\AuthController;
 
 class AuthMiddleware {
     
-    // Verificar autenticación básica
-    public static function requireAuth($redirectTo = '../login.php') {
+    // Verificar si el usuario está autenticado
+    public static function requireAuth() {
         if (!AuthController::isAuthenticated()) {
-            AuthController::setFlashMessage('error', 'Debes iniciar sesión para acceder a esta página.');
-            header('Location: ' . $redirectTo);
+            header('Location: ../../login.php');
             exit();
         }
     }
     
-    // Verificar rol de administrador
-    public static function requireAdmin($redirectTo = '../login.php') {
+    // Verificar si el usuario es administrador
+    public static function requireAdmin() {
+        self::requireAuth();
+        
         if (!AuthController::isAdmin()) {
-            AuthController::setFlashMessage('error', 'No tienes permisos de administrador para acceder a esta página.');
-            header('Location: ' . $redirectTo);
+            header('Location: ../../views/client/home.php');
             exit();
         }
     }
     
-    // Verificar rol de usuario
-    public static function requireUser($redirectTo = '../login.php') {
-        if (!AuthController::isUser()) {
-            AuthController::setFlashMessage('error', 'No tienes permisos de usuario para acceder a esta página.');
-            header('Location: ' . $redirectTo);
+    // Verificar si el usuario es cliente
+    public static function requireUser() {
+        self::requireAuth();
+        
+        if (AuthController::isAdmin()) {
+            header('Location: ../../views/admin/index.php?controller=admin&action=dashboard');
             exit();
         }
     }
     
-    // Verificar que NO esté autenticado (para páginas como login/register)
-    public static function requireGuest($redirectTo = 'views/client/home.php') {
+    // Redirigir usuarios autenticados
+    public static function redirectIfAuthenticated() {
         if (AuthController::isAuthenticated()) {
             if (AuthController::isAdmin()) {
-                header('Location: views/admin/dashboard.php');
+                header('Location: views/admin/index.php?controller=admin&action=dashboard');
             } else {
-                header('Location: ' . $redirectTo);
+                header('Location: views/client/home.php');
             }
             exit();
         }
-    }
-    
-    // Verificar timeout de sesión
-    public static function checkSessionTimeout($timeout = 3600) {
-        return AuthController::checkSessionTimeout($timeout);
-    }
-    
-    // Regenerar ID de sesión
-    public static function regenerateSession() {
-        AuthController::regenerateSession();
     }
 }
 ?>

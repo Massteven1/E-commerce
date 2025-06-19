@@ -78,9 +78,8 @@ class CartController {
             if (AuthController::isAuthenticated()) {
                 $currentUser = AuthController::getCurrentUser();
                 if ($this->userCourseModel->hasAccess($currentUser['id'], $playlist_id)) {
-                    $response = ['status' => 'error', 'message' => 'Ya tienes acceso a este curso.'];
-                    echo json_encode($response);
-                    return;
+                    AuthController::setFlashMessage('error', 'Ya tienes acceso a este curso.');
+                    return false;
                 }
             }
 
@@ -94,24 +93,23 @@ class CartController {
                 'quantity' => 1 // Siempre será 1 para cursos
             ];
             
-            $response = ['status' => 'success', 'message' => 'Curso añadido al carrito.', 'cart_count' => self::getCartCount()];
-            echo json_encode($response);
-            return;
+            AuthController::setFlashMessage('success', 'Curso añadido al carrito.');
+            return true;
         }
         
-        $response = ['status' => 'error', 'message' => 'No se pudo añadir el curso al carrito.'];
-        echo json_encode($response);
-        return;
+        AuthController::setFlashMessage('error', 'No se pudo añadir el curso al carrito.');
+        return false;
     }
 
     public function remove($playlist_id) {
         if (isset($_SESSION['cart'][$playlist_id])) {
             unset($_SESSION['cart'][$playlist_id]);
-            $response = ['status' => 'success', 'message' => 'Curso eliminado del carrito.', 'cart_count' => self::getCartCount()];
-        } else {
-            $response = ['status' => 'error', 'message' => 'El curso no estaba en el carrito.'];
+            AuthController::setFlashMessage('success', 'Curso eliminado del carrito.');
+            return true;
         }
-        echo json_encode($response);
+        
+        AuthController::setFlashMessage('error', 'El curso no estaba en el carrito.');
+        return false;
     }
 
     public function applyPromoCode($code) {
@@ -121,22 +119,19 @@ class CartController {
             $_SESSION['promo_code_applied'] = $code;
             $_SESSION['promo_discount_rate'] = $this->promo_codes[$code];
             $_SESSION['promo_message'] = 'Código "' . htmlspecialchars($code) . '" aplicado con éxito. Descuento: ' . ($this->promo_codes[$code] * 100) . '%';
-            $response = ['status' => 'success', 'message' => $_SESSION['promo_message']];
+            return true;
         } else {
             $_SESSION['promo_code_applied'] = null;
             $_SESSION['promo_discount_rate'] = 0;
             $_SESSION['promo_message'] = 'Código promocional inválido o expirado.';
-            $response = ['status' => 'error', 'message' => $_SESSION['promo_message']];
+            return false;
         }
-        echo json_encode($response);
     }
 
     public function removePromoCode() {
         $_SESSION['promo_code_applied'] = null;
         $_SESSION['promo_discount_rate'] = 0;
         $_SESSION['promo_message'] = 'Código promocional eliminado.';
-        $response = ['status' => 'success', 'message' => $_SESSION['promo_message']];
-        echo json_encode($response);
     }
 
     // Obtener items del carrito en formato consistente
@@ -207,7 +202,7 @@ class CartController {
     }
 
     // Obtener número de items en el carrito
-    public static function getCartCount() {
+    public function getCartCount() {
         return count($_SESSION['cart']);
     }
 
@@ -232,10 +227,8 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
             $playlist_id = $_GET['id'] ?? 0;
             if ($playlist_id > 0) {
                 $controller->add($playlist_id);
-            } else {
-                $response = ['status' => 'error', 'message' => 'ID de curso inválido.'];
-                echo json_encode($response);
             }
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '../views/client/cart.php'));
             exit();
             break;
             
@@ -243,10 +236,8 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
             $playlist_id = $_GET['id'] ?? 0;
             if ($playlist_id > 0) {
                 $controller->remove($playlist_id);
-            } else {
-                $response = ['status' => 'error', 'message' => 'ID de curso inválido.'];
-                echo json_encode($response);
             }
+            header('Location: ../views/client/cart.php');
             exit();
             break;
             
@@ -254,15 +245,14 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $promo_code = $_POST['promo_code'] ?? '';
                 $controller->applyPromoCode($promo_code);
-            } else {
-                $response = ['status' => 'error', 'message' => 'Método no permitido.'];
-                echo json_encode($response);
             }
+            header('Location: ../views/client/cart.php');
             exit();
             break;
             
         case 'remove_promo':
             $controller->removePromoCode();
+            header('Location: ../views/client/cart.php');
             exit();
             break;
             

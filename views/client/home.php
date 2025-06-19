@@ -35,7 +35,7 @@ $userId = $currentUser['id'];
 $allPlaylists = $playlistModel->readAll();
 
 // Obtener cursos ya comprados por el usuario
-$purchasedCourses = $userCourseModel->readByUserId($userId);
+$purchasedCourses = $userCourseModel->getPurchasedPlaylistsByUserId($userId);
 $purchasedIds = array_column($purchasedCourses, 'playlist_id');
 
 // Filtrar cursos disponibles (no comprados)

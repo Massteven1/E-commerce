@@ -44,10 +44,10 @@ $playlistModel = new Playlist($db);
 $orders = $orderModel->readByUserId($userId);
 
 // Obtener cursos comprados del usuario con detalles completos
-$purchasedCourses = $userCourseModel->readByUserId($userId);
+$purchasedCourses = $userCourseModel->getPurchasedPlaylistsByUserId($userId);
 
 // Obtener estadísticas del usuario
-$userStats = $userCourseModel->getStats($userId);
+$userStats = $userCourseModel->getUserCourseStats($userId);
 
 // Obtener conteo del carrito para el header
 $cartController = new CartController();

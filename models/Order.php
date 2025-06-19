@@ -1,12 +1,6 @@
 <?php
 namespace Models;
 
-require_once __DIR__ . '/../config/Database.php';
-
-use Config\Database;
-use PDO;
-use Exception;
-
 class Order {
     private $conn;
     private $table_name = "orders";
@@ -17,17 +11,10 @@ class Order {
     public $amount;
     public $currency;
     public $status;
-    public $payment_method;
     public $created_at;
-    public $updated_at;
     
-    public function __construct($db = null) {
-        if ($db === null) {
-            $database = new Database();
-            $this->conn = $database->getConnection();
-        } else {
-            $this->conn = $db;
-        }
+    public function __construct($db) {
+        $this->conn = $db;
         $this->createTableIfNotExists();
     }
     
@@ -35,8 +22,8 @@ class Order {
     public function create() {
         try {
             $query = "INSERT INTO " . $this->table_name . " 
-                      (user_id, transaction_id, amount, currency, status, payment_method, created_at) 
-                      VALUES (:user_id, :transaction_id, :amount, :currency, :status, :payment_method, NOW())";
+                      (user_id, transaction_id, amount, currency, status, created_at) 
+                      VALUES (:user_id, :transaction_id, :amount, :currency, :status, NOW())";
             
             $stmt = $this->conn->prepare($query);
             
@@ -44,9 +31,8 @@ class Order {
             $this->user_id = intval($this->user_id);
             $this->transaction_id = htmlspecialchars(strip_tags($this->transaction_id));
             $this->amount = floatval($this->amount);
-            $this->currency = htmlspecialchars(strip_tags($this->currency ?? 'USD'));
+            $this->currency = htmlspecialchars(strip_tags($this->currency));
             $this->status = htmlspecialchars(strip_tags($this->status));
-            $this->payment_method = htmlspecialchars(strip_tags($this->payment_method ?? 'stripe'));
             
             // Vincular valores
             $stmt->bindParam(':user_id', $this->user_id);
@@ -54,7 +40,6 @@ class Order {
             $stmt->bindParam(':amount', $this->amount);
             $stmt->bindParam(':currency', $this->currency);
             $stmt->bindParam(':status', $this->status);
-            $stmt->bindParam(':payment_method', $this->payment_method);
             
             if ($stmt->execute()) {
                 $this->id = $this->conn->lastInsertId();
@@ -62,29 +47,65 @@ class Order {
             }
             
             return false;
-        } catch (Exception $e) {
+        } catch (\PDOException $e) {
             error_log("Error en Order::create: " . $e->getMessage());
             return false;
         }
     }
     
-    // Leer todos los pedidos
-    public function readAll() {
+    // Obtener pedido por ID
+    public function getOrderById($id) {
         try {
-            $query = "SELECT o.*, u.first_name, u.last_name, u.email 
-                      FROM " . $this->table_name . " o 
-                      LEFT JOIN users u ON o.user_id = u.id 
-                      ORDER BY o.created_at DESC";
+            $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id";
+            
             $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            error_log("Error en Order::readAll: " . $e->getMessage());
+            
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error en Order::getOrderById: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    // Obtener items de un pedido
+    public function getOrderItems($order_id) {
+        try {
+            $query = "SELECT uc.*, p.name, p.description, p.price, p.cover_image, p.level
+                      FROM user_courses uc
+                      JOIN playlists p ON uc.playlist_id = p.id
+                      WHERE uc.order_id = :order_id
+                      ORDER BY uc.created_at ASC";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':order_id', $order_id, \PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error en Order::getOrderItems: " . $e->getMessage());
             return [];
         }
     }
     
-    // Obtener pedidos por ID de usuario
+    // Leer un pedido por ID
+    public function read($id) {
+        try {
+            $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error en Order::read: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    // Obtener todos los pedidos de un usuario
     public function readByUserId($user_id) {
         try {
             $query = "SELECT o.*, 
@@ -98,51 +119,12 @@ class Order {
                       ORDER BY o.created_at DESC";
             
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+            $stmt->bindParam(':user_id', $user_id, \PDO::PARAM_INT);
             $stmt->execute();
             
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
             error_log("Error en Order::readByUserId: " . $e->getMessage());
-            return [];
-        }
-    }
-    
-    // Obtener pedido por ID
-    public function getOrderById($order_id) {
-        try {
-            $query = "SELECT o.*, u.first_name, u.last_name, u.email 
-                      FROM " . $this->table_name . " o 
-                      LEFT JOIN users u ON o.user_id = u.id 
-                      WHERE o.id = :order_id LIMIT 1";
-            
-            $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':order_id', $order_id, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            error_log("Error en Order::getOrderById: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    // Obtener items de un pedido
-    public function getOrderItems($order_id) {
-        try {
-            $query = "SELECT p.*, uc.created_at as purchase_date
-                      FROM user_courses uc
-                      INNER JOIN playlists p ON uc.playlist_id = p.id
-                      WHERE uc.order_id = :order_id
-                      ORDER BY uc.created_at DESC";
-            
-            $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':order_id', $order_id, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            error_log("Error en Order::getOrderItems: " . $e->getMessage());
             return [];
         }
     }
@@ -156,8 +138,8 @@ class Order {
             $stmt->bindParam(':transaction_id', $transaction_id);
             $stmt->execute();
             
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
             error_log("Error en Order::findByTransactionId: " . $e->getMessage());
             return null;
         }
@@ -167,7 +149,7 @@ class Order {
     public function updateStatus($transaction_id, $status) {
         try {
             $query = "UPDATE " . $this->table_name . " 
-                      SET status = :status, updated_at = NOW() 
+                      SET status = :status 
                       WHERE transaction_id = :transaction_id";
             
             $stmt = $this->conn->prepare($query);
@@ -179,7 +161,7 @@ class Order {
             $stmt->bindParam(':transaction_id', $transaction_id);
             
             return $stmt->execute();
-        } catch (Exception $e) {
+        } catch (\PDOException $e) {
             error_log("Error en Order::updateStatus: " . $e->getMessage());
             return false;
         }
@@ -201,20 +183,14 @@ class Order {
             $stmt = $this->conn->prepare($query);
             
             if ($user_id) {
-                $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+                $stmt->bindParam(':user_id', $user_id, \PDO::PARAM_INT);
             }
             
             $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
             error_log("Error en Order::getOrderStats: " . $e->getMessage());
-            return [
-                'total_orders' => 0,
-                'total_revenue' => 0,
-                'completed_orders' => 0,
-                'pending_orders' => 0,
-                'failed_orders' => 0
-            ];
+            return null;
         }
     }
     
@@ -228,7 +204,6 @@ class Order {
                 amount DECIMAL(10,2) NOT NULL,
                 currency VARCHAR(3) NOT NULL DEFAULT 'USD',
                 status VARCHAR(20) NOT NULL DEFAULT 'pending',
-                payment_method VARCHAR(50) DEFAULT 'stripe',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (id),
@@ -242,7 +217,7 @@ class Order {
             $stmt->execute();
             
             return true;
-        } catch (Exception $e) {
+        } catch (\PDOException $e) {
             error_log("Error al crear la tabla orders: " . $e->getMessage());
             return false;
         }
