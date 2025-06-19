@@ -2,6 +2,6 @@
 2. Arreglar el inicio de sesion con Google
 3. Agregar el uso de Paypal.
 4. Verificar la funcionalidad con Stripe
-5. Resolver el problema de editar y eliminar video en http://localhost:3000/views/admin/index.php?controller=video&action=view_playlist&id=(id de la playlist segun la bd)
+5 Arreglar la funcionalidad de agregar al carrito.
 
 NOTA: RECORDAR HACER PRIVADO EL ROPOSITORIO AL ACABAR. (Las claves de testo están expuestas)
