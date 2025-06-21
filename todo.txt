@@ -1,7 +1,4 @@
-1. Arreglar el inicio de sesion con Facebook
-2. Arreglar el inicio de sesion con Google
-3. Agregar el uso de Paypal.
-4. Verificar la funcionalidad con Stripe
-5 Arreglar la funcionalidad de agregar al carrito.
+1. Agregar el uso de Paypal.
+2. Hacer que el curso este disponible al usuario despu[es de realizar la compra.]
 
 NOTA: RECORDAR HACER PRIVADO EL ROPOSITORIO AL ACABAR. (Las claves de testo están expuestas)
