@@ -840,8 +840,8 @@ if ($levelFilter || $searchQuery) {
                                                            class="btn btn-primary add-to-cart-btn">
                                                        <i class="fas fa-cart-plus"></i> Agregar
                                                    </button>
-                                               <?php endif; ?>
-                                           <?endif; ?>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
                                        </div>
                                    </div>
                                </div>

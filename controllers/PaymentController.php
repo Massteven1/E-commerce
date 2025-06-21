@@ -327,6 +327,12 @@ class PaymentController {
                             error_log("Error al otorgar acceso al curso $playlistId para el usuario $userId");
                         } else {
                             error_log("Acceso otorgado exitosamente al curso $playlistId para el usuario $userId");
+                            // AGREGADO: Verificar acceso inmediatamente después de otorgarlo
+                            if ($this->userCourseModel->hasAccess($userId, $playlistId)) {
+                                error_log("VERIFICACIÓN: Usuario $userId AHORA tiene acceso al curso $playlistId.");
+                            } else {
+                                error_log("VERIFICACIÓN FALLIDA: Usuario $userId NO tiene acceso al curso $playlistId después de intentar otorgarlo.");
+                            }
                         }
                     }
 

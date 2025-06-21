@@ -17,7 +17,7 @@ use Models\Order;
 $database = new Database();
 $db = $database->getConnection();
 $orderModel = new Order($db);
-$orders = $orderModel->readAll();
+//!FIXME: $orders = $orderModel->readAll();
 
 $currentUser = AuthController::getCurrentUser();
 ?>

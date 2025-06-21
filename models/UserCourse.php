@@ -1,9 +1,9 @@
 <?php
-namespace Models; // <--- AGREGADO: Declaración del namespace
+namespace Models;
 
-require_once __DIR__ . '/../config/Database.php'; // <--- AGREGADO: Inclusión de Database
+require_once __DIR__ . '/../config/Database.php';
 
-use Config\Database; // <--- AGREGADO: Uso del namespace Database
+use Config\Database;
 use PDO;
 use Exception;
 
@@ -42,10 +42,15 @@ class UserCourse {
                return false;
            }
            
+           error_log("UserCourse::grantAccess - Otorgando acceso:");
+           error_log("  user_id: $user_id");
+           error_log("  playlist_id: $playlist_id");
+           error_log("  order_id: " . ($order_id ?? 'NULL'));
+           
            // Verificar si ya tiene acceso
            if ($this->hasAccess($user_id, $playlist_id)) {
-               error_log("Usuario $user_id ya tiene acceso al curso $playlist_id");
-               return true; // Ya tiene acceso
+               error_log("UserCourse::grantAccess - Usuario $user_id ya tiene acceso al curso $playlist_id. No se duplicará.");
+               return true; // No es un error, ya tiene acceso
            }
            
            $query = "INSERT INTO " . $this->table_name . " 
@@ -53,6 +58,12 @@ class UserCourse {
                      VALUES (:user_id, :playlist_id, :order_id, NOW(), NOW())";
            
            $stmt = $this->conn->prepare($query);
+           
+           if (!$stmt) {
+               error_log("UserCourse::grantAccess - Error preparando consulta: " . implode(" - ", $this->conn->errorInfo()));
+               return false;
+           }
+           
            $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
            $stmt->bindParam(':playlist_id', $playlist_id, PDO::PARAM_INT);
            
@@ -62,19 +73,17 @@ class UserCourse {
                $stmt->bindValue(':order_id', null, PDO::PARAM_NULL); // Usar bindValue para NULL
            }
            
-           error_log("Otorgando acceso - User: $user_id, Playlist: $playlist_id, Order: " . ($order_id ?? 'NULL'));
-           
            if ($stmt->execute()) {
-               error_log("Acceso otorgado exitosamente - User: $user_id, Playlist: $playlist_id");
+               error_log("UserCourse::grantAccess - Acceso otorgado exitosamente para User: $user_id, Playlist: $playlist_id");
                return true;
            } else {
                $errorInfo = $stmt->errorInfo();
-               error_log("Error SQL en UserCourse::grantAccess: " . implode(" - ", $errorInfo));
+               error_log("UserCourse::grantAccess - Error SQL: " . implode(" - ", $errorInfo));
                return false;
            }
            
        } catch (Exception $e) {
-           error_log("Excepción en UserCourse::grantAccess: " . $e->getMessage());
+           error_log("UserCourse::grantAccess - Excepción: " . $e->getMessage());
            return false;
        }
    }
@@ -91,6 +100,7 @@ class UserCourse {
            $stmt->execute();
            
            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+           error_log("UserCourse::hasAccess - User: $user_id, Playlist: $playlist_id, Has Access: " . ($result['count'] > 0 ? 'Yes' : 'No'));
            return $result['count'] > 0;
        } catch (Exception $e) {
            error_log("Error en UserCourse::hasAccess: " . $e->getMessage());
@@ -101,7 +111,7 @@ class UserCourse {
    // Obtener cursos de un usuario
    public function readByUserId($user_id) {
        try {
-           $query = "SELECT uc.*, p.name, p.description, p.price, p.cover_image, p.level
+           $query = "SELECT uc.*, p.title as name, p.description, p.price, p.cover_image, p.level
                      FROM " . $this->table_name . " uc
                      INNER JOIN playlists p ON uc.playlist_id = p.id
                      WHERE uc.user_id = :user_id
@@ -111,7 +121,9 @@ class UserCourse {
            $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
            $stmt->execute();
            
-           return $stmt->fetchAll(PDO::FETCH_ASSOC);
+           $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+           error_log("UserCourse::readByUserId - User: $user_id, Cursos encontrados: " . count($results));
+           return $results;
        } catch (Exception $e) {
            error_log("Error en UserCourse::readByUserId: " . $e->getMessage());
            return [];
@@ -156,7 +168,7 @@ class UserCourse {
    }
    
    // Obtener estadísticas de inscripciones
-   public function getStats($user_id = null) { // Añadido $user_id para estadísticas específicas de usuario
+   public function getStats($user_id = null) {
        try {
            $stats = [];
            
@@ -187,13 +199,13 @@ class UserCourse {
            $stats['monthly_enrollments'] = $stmt->fetch(PDO::FETCH_ASSOC)['monthly'];
            
            // Curso más popular (global o del usuario)
-           $query = "SELECT p.name, COUNT(uc.playlist_id) as enrollments
+           $query = "SELECT p.title as name, COUNT(uc.playlist_id) as enrollments
                      FROM " . $this->table_name . " uc
                      INNER JOIN playlists p ON uc.playlist_id = p.id";
            if ($user_id) {
                $query .= " WHERE uc.user_id = :user_id";
            }
-           $query .= " GROUP BY uc.playlist_id, p.name
+           $query .= " GROUP BY uc.playlist_id, p.title
                      ORDER BY enrollments DESC
                      LIMIT 1";
            $stmt = $this->conn->prepare($query);
