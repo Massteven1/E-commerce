@@ -1,5 +1,5 @@
 <?php
-namespace Helpers; // Añadir namespace
+namespace Helpers;
 
 class SecurityHelper {
     
@@ -11,11 +11,9 @@ class SecurityHelper {
             session_start();
         }
         
-        if (!isset($_SESSION['csrf_token'])) {
-            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        }
-        
-        return $_SESSION['csrf_token'];
+        $token = bin2hex(random_bytes(32));
+        $_SESSION['csrf_token'] = $token;
+        return $token;
     }
     
     /**
@@ -26,11 +24,22 @@ class SecurityHelper {
             session_start();
         }
         
-        return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+        if (!isset($_SESSION['csrf_token']) || !$token) {
+            return false;
+        }
+        
+        $isValid = hash_equals($_SESSION['csrf_token'], $token);
+        
+        // Limpiar token después de usar
+        if ($isValid) {
+            unset($_SESSION['csrf_token']);
+        }
+        
+        return $isValid;
     }
     
     /**
-     * Limpiar y sanitizar entrada
+     * Sanitizar entrada de datos
      */
     public static function sanitizeInput($input) {
         if (is_array($input)) {
@@ -48,13 +57,6 @@ class SecurityHelper {
     }
     
     /**
-     * Validar teléfono
-     */
-    public static function validatePhone($phone) {
-        return preg_match('/^[\+]?[0-9\s\-$$$$]{10,}$/', $phone);
-    }
-    
-    /**
      * Generar hash seguro para contraseñas
      */
     public static function hashPassword($password) {
@@ -69,36 +71,71 @@ class SecurityHelper {
     }
     
     /**
-     * Rate limiting básico
+     * Generar string aleatorio
      */
-    public static function checkRateLimit($identifier, $maxAttempts = 5, $timeWindow = 300) {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
+    public static function generateRandomString($length = 32) {
+        return bin2hex(random_bytes($length / 2));
+    }
+    
+    /**
+     * Validar fuerza de contraseña
+     */
+    public static function validatePasswordStrength($password) {
+        $errors = [];
+        
+        if (strlen($password) < 8) {
+            $errors[] = 'La contraseña debe tener al menos 8 caracteres';
         }
         
-        $key = 'rate_limit_' . $identifier;
-        $now = time();
-        
-        if (!isset($_SESSION[$key])) {
-            $_SESSION[$key] = ['count' => 1, 'first_attempt' => $now];
-            return true;
+        if (!preg_match('/[a-z]/', $password)) {
+            $errors[] = 'La contraseña debe contener al menos una letra minúscula';
         }
         
-        $data = $_SESSION[$key];
-        
-        // Si ha pasado el tiempo límite, resetear
-        if ($now - $data['first_attempt'] > $timeWindow) {
-            $_SESSION[$key] = ['count' => 1, 'first_attempt' => $now];
-            return true;
+        if (!preg_match('/[A-Z]/', $password)) {
+            $errors[] = 'La contraseña debe contener al menos una letra mayúscula';
         }
         
-        // Si no ha excedido el límite
-        if ($data['count'] < $maxAttempts) {
-            $_SESSION[$key]['count']++;
-            return true;
+        if (!preg_match('/[0-9]/', $password)) {
+            $errors[] = 'La contraseña debe contener al menos un número';
         }
         
-        return false;
+        return $errors;
+    }
+    
+    /**
+     * Limpiar nombre de archivo
+     */
+    public static function sanitizeFilename($filename) {
+        // Remover caracteres peligrosos
+        $filename = preg_replace('/[^a-zA-Z0-9._-]/', '', $filename);
+        
+        // Limitar longitud
+        if (strlen($filename) > 255) {
+            $filename = substr($filename, 0, 255);
+        }
+        
+        return $filename;
+    }
+    
+    /**
+     * Validar tipo de archivo
+     */
+    public static function validateFileType($filename, $allowedTypes) {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        return in_array($extension, $allowedTypes);
+    }
+    
+    /**
+     * Prevenir ataques de path traversal
+     */
+    public static function sanitizePath($path) {
+        // Remover ../ y ./
+        $path = str_replace(['../', './'], '', $path);
+        
+        // Remover caracteres peligrosos
+        $path = preg_replace('/[^a-zA-Z0-9\/._-]/', '', $path);
+        
+        return $path;
     }
 }
 ?>

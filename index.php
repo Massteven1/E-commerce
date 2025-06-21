@@ -4,37 +4,70 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Cargar dependencias para mostrar algunos cursos
+// Cargar dependencias básicas
 require_once __DIR__ . '/config/Database.php';
-require_once __DIR__ . '/models/Playlist.php';
 require_once __DIR__ . '/controllers/AuthController.php';
 
 use Config\Database;
-use Models\Playlist;
 use Controllers\AuthController;
 
-// Verificar si el usuario está logueado
+// Manejar routing simple
+if (isset($_GET['page'])) {
+    $page = $_GET['page'];
+    
+    switch ($page) {
+        case 'admin':
+            // Verificar que sea admin
+            if (!AuthController::isAdmin()) {
+                AuthController::setFlashMessage('error', 'Acceso denegado.');
+                header('Location: login.php');
+                exit();
+            }
+            
+            $action = $_GET['action'] ?? 'dashboard';
+            include __DIR__ . '/views/admin/' . $action . '.php';
+            exit();
+            
+        case 'client':
+            // Verificar que esté autenticado
+            if (!AuthController::isAuthenticated()) {
+                header('Location: login.php');
+                exit();
+            }
+            
+            $action = $_GET['action'] ?? 'home';
+            include __DIR__ . '/views/client/' . $action . '.php';
+            exit();
+    }
+}
+
+// Si el usuario está logueado, redirigir según su rol
 if (AuthController::isAuthenticated()) {
-    // Si está logueado, verificar el rol
     if (AuthController::isAdmin()) {
-        // Redirigir al panel de administración
-        header('Location: views/admin/dashboard.php');
+        header('Location: index.php?page=admin&action=dashboard');
         exit();
     } else {
-        // Redirigir a la página principal del cliente
-        header('Location: views/client/home.php');
+        header('Location: index.php?page=client&action=home');
         exit();
     }
 }
 
 // Si no está logueado, mostrar la página de inicio pública
+require_once __DIR__ . '/models/Playlist.php';
+use Models\Playlist;
+
 $database = new Database();
 $db = $database->getConnection();
 $playlistModel = new Playlist($db);
 
 // Obtener algunos cursos para mostrar (máximo 6)
-$playlists = $playlistModel->readAll();
-$featured_playlists = array_slice($playlists, 0, 6);
+try {
+    $playlists = $playlistModel->readAll();
+    $featured_playlists = array_slice($playlists, 0, 6);
+} catch (Exception $e) {
+    error_log("Error obteniendo playlists: " . $e->getMessage());
+    $featured_playlists = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -51,7 +84,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
     <header class="header">
         <div class="container">
             <div class="logo">
-                <img src="img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                <img src="public/img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
                 <span>El Profesor Hernán</span>
             </div>
             
@@ -99,7 +132,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
                 </div>
                 <div class="banner-image">
                     <div class="image-container">
-                        <img src="img/hero-image.png?height=400&width=400" alt="Profesor enseñando inglés">
+                        <img src="public/img/hero-image.png?height=400&width=400" alt="Profesor enseñando inglés">
                     </div>
                 </div>
             </div>
@@ -117,8 +150,8 @@ $featured_playlists = array_slice($playlists, 0, 6);
                     <?php foreach ($featured_playlists as $playlist): ?>
                         <div class="product-card">
                             <div class="product-tumb">
-                                <?php if (!empty($playlist['cover_image'])): ?>
-                                    <img src="<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
+                                <?php if (!empty($playlist['thumbnail'])): ?>
+                                    <img src="<?php echo htmlspecialchars($playlist['thumbnail']); ?>" alt="<?php echo htmlspecialchars($playlist['title']); ?>">
                                 <?php else: ?>
                                     <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
                                 <?php endif; ?>
@@ -127,8 +160,8 @@ $featured_playlists = array_slice($playlists, 0, 6);
                                 </div>
                             </div>
                             <div class="product-details">
-                                <span class="product-catagory">Nivel <?php echo htmlspecialchars($playlist['level']); ?></span>
-                                <h4><?php echo htmlspecialchars($playlist['name']); ?></h4>
+                                <span class="product-catagory">Nivel <?php echo htmlspecialchars($playlist['level'] ?? 'General'); ?></span>
+                                <h4><?php echo htmlspecialchars($playlist['title']); ?></h4>
                                 <p><?php echo htmlspecialchars($playlist['description'] ?: 'Curso completo de inglés'); ?></p>
                                 <div class="product-bottom-details">
                                     <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?></div>
@@ -158,7 +191,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
 
             <div class="courses-grid">
                 <div class="course-card">
-                    <div class="level-badge neon-glow" style="background-color: var(--orange-color); color: white;">A1</div>
+                    <div class="level-badge neon-glow" style="background-color: #ff6b35; color: white;">A1</div>
                     <div class="course-icon"><i class="fas fa-seedling"></i></div>
                     <h3 class="course-title">BÁSICO</h3>
                     <p class="course-subtitle">Primeros pasos en inglés</p>
@@ -170,7 +203,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
                 </div>
                 
                 <div class="course-card">
-                    <div class="level-badge neon-glow" style="background-color: var(--red-color); color: white;">A2</div>
+                    <div class="level-badge neon-glow" style="background-color: #e74c3c; color: white;">A2</div>
                     <div class="course-icon"><i class="fas fa-comments"></i></div>
                     <h3 class="course-title">PRE INTERMEDIO</h3>
                     <p class="course-subtitle">Construye tu base</p>
@@ -182,7 +215,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
                 </div>
                 
                 <div class="course-card">
-                    <div class="level-badge neon-glow" style="background-color: var(--blue-color); color: white;">B1</div>
+                    <div class="level-badge neon-glow" style="background-color: #3498db; color: white;">B1</div>
                     <div class="course-icon"><i class="fas fa-graduation-cap"></i></div>
                     <h3 class="course-title">INTERMEDIO</h3>
                     <p class="course-subtitle">Desarrolla fluidez</p>
@@ -194,7 +227,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
                 </div>
                 
                 <div class="course-card">
-                    <div class="level-badge neon-glow" style="background-color: var(--teal-color); color: white;">B2</div>
+                    <div class="level-badge neon-glow" style="background-color: #1abc9c; color: white;">B2</div>
                     <div class="course-icon"><i class="fas fa-trophy"></i></div>
                     <h3 class="course-title">INTERMEDIO ALTO</h3>
                     <p class="course-subtitle">Perfecciona tu inglés</p>
@@ -206,7 +239,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
                 </div>
                 
                 <div class="course-card">
-                    <div class="level-badge neon-glow" style="background-color: var(--purple-color); color: white;">C1</div>
+                    <div class="level-badge neon-glow" style="background-color: #9b59b6; color: white;">C1</div>
                     <div class="course-icon"><i class="fas fa-crown"></i></div>
                     <h3 class="course-title">AVANZADO</h3>
                     <p class="course-subtitle">Dominio del idioma</p>
@@ -252,7 +285,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
                     </div>
                 </div>
                 <div class="about-image">
-                    <img src="img/profesor-hernan.jpg?height=400&width=400" alt="Profesor Hernán">
+                    <img src="public/img/profesor-hernan.jpg?height=400&width=400" alt="Profesor Hernán">
                 </div>
             </div>
         </div>
@@ -330,7 +363,7 @@ $featured_playlists = array_slice($playlists, 0, 6);
             <div class="footer-content">
                 <div class="footer-section">
                     <div class="logo">
-                        <img src="img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                        <img src="public/img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
                         <span>El Profesor Hernán</span>
                     </div>
                     <p>Tu mejor opción para aprender inglés online. Cursos diseñados para todos los niveles.</p>

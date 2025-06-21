@@ -5,7 +5,6 @@ require_once __DIR__ . '/../config/Database.php';
 
 use Config\Database;
 use PDO;
-use Exception;
 
 class User {
     private $conn;
@@ -32,38 +31,73 @@ class User {
         }
         $this->createTableIfNotExists();
     }
-    
-    // Crear usuario
-    public function create() {
+
+    // Crear la tabla si no existe
+    private function createTableIfNotExists() {
         try {
-            $query = "INSERT INTO " . $this->table_name . " 
-                      SET first_name=:first_name, last_name=:last_name, email=:email, 
-                          password=:password, role=:role, google_id=:google_id, created_at=NOW()";
+            $query = "CREATE TABLE IF NOT EXISTS " . $this->table_name . " (
+                id INT(11) NOT NULL AUTO_INCREMENT,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                first_name VARCHAR(100) NOT NULL,
+                last_name VARCHAR(100) NOT NULL,
+                role ENUM('user', 'admin') DEFAULT 'user',
+                is_active TINYINT(1) DEFAULT 1,
+                google_id VARCHAR(255) NULL,
+                last_login DATETIME NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                INDEX idx_email (email),
+                INDEX idx_role (role),
+                INDEX idx_is_active (is_active)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
             
             $stmt = $this->conn->prepare($query);
+            $stmt->execute();
             
-            $this->first_name = htmlspecialchars(strip_tags($this->first_name));
-            $this->last_name = htmlspecialchars(strip_tags($this->last_name));
-            $this->email = htmlspecialchars(strip_tags($this->email));
-            $this->password = htmlspecialchars(strip_tags($this->password));
-            $this->role = htmlspecialchars(strip_tags($this->role));
-            $this->google_id = htmlspecialchars(strip_tags($this->google_id ?? ''));
+            return true;
+        } catch (\Exception $e) {
+            error_log("Error al crear la tabla users: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // Crear usuario - SIMPLIFICADO
+    public function create() {
+        try {
+            // Query simplificada sin google_id para evitar problemas
+            $query = "INSERT INTO " . $this->table_name . " 
+                      (first_name, last_name, email, password, role, is_active, created_at) 
+                      VALUES (?, ?, ?, ?, ?, 1, NOW())";
+        
+            $stmt = $this->conn->prepare($query);
             
-            $stmt->bindParam(":first_name", $this->first_name);
-            $stmt->bindParam(":last_name", $this->last_name);
-            $stmt->bindParam(":email", $this->email);
-            $stmt->bindParam(":password", $this->password);
-            $stmt->bindParam(":role", $this->role);
-            $stmt->bindParam(":google_id", $this->google_id);
+            // Limpiar datos
+            $first_name = htmlspecialchars(strip_tags(trim($this->first_name)));
+            $last_name = htmlspecialchars(strip_tags(trim($this->last_name)));
+            $email = htmlspecialchars(strip_tags(trim($this->email)));
+            $password = $this->password; // Ya viene hasheada
+            $role = $this->role ?? 'user';
             
-            if ($stmt->execute()) {
+            // Log para debugging
+            error_log("User::create - Intentando insertar: $first_name, $last_name, $email, role: $role");
+            
+            // Ejecutar con parámetros posicionales
+            $result = $stmt->execute([$first_name, $last_name, $email, $password, $role]);
+            
+            if ($result) {
                 $this->id = $this->conn->lastInsertId();
+                error_log("User::create - Usuario creado exitosamente con ID: " . $this->id);
                 return true;
+            } else {
+                $errorInfo = $stmt->errorInfo();
+                error_log("User::create - Error en execute(): " . print_r($errorInfo, true));
+                return false;
             }
             
-            return false;
-        } catch (Exception $e) {
-            error_log("Error en User::create: " . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log("User::create - Excepción: " . $e->getMessage());
             return false;
         }
     }
@@ -77,7 +111,7 @@ class User {
             $stmt = $this->conn->prepare($query);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Error en User::readAll: " . $e->getMessage());
             return [];
         }
@@ -86,35 +120,16 @@ class User {
     // Buscar usuario por email
     public function findByEmail($email) {
         try {
-            $query = "SELECT * FROM " . $this->table_name . " WHERE email = :email AND is_active = 1 LIMIT 1";
+            $query = "SELECT * FROM " . $this->table_name . " WHERE email = ? LIMIT 1";
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(":email", $email);
-            $stmt->execute();
+            $stmt->execute([$email]);
             
             if ($stmt->rowCount() > 0) {
                 return $stmt->fetch(PDO::FETCH_ASSOC);
             }
             return false;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Error en User::findByEmail: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    // Buscar usuario por ID
-    public function findById($id) {
-        try {
-            $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id AND is_active = 1 LIMIT 1";
-            $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(":id", $id, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            if ($stmt->rowCount() > 0) {
-                return $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-            return false;
-        } catch (Exception $e) {
-            error_log("Error en User::findById: " . $e->getMessage());
             return false;
         }
     }
@@ -122,12 +137,11 @@ class User {
     // Verificar si el email existe
     public function emailExists($email) {
         try {
-            $query = "SELECT id FROM " . $this->table_name . " WHERE email = :email LIMIT 1";
+            $query = "SELECT id FROM " . $this->table_name . " WHERE email = ? LIMIT 1";
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(":email", $email);
-            $stmt->execute();
+            $stmt->execute([$email]);
             return $stmt->rowCount() > 0;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Error en User::emailExists: " . $e->getMessage());
             return false;
         }
@@ -146,11 +160,10 @@ class User {
     // Actualizar último login
     public function updateLastLogin() {
         try {
-            $query = "UPDATE " . $this->table_name . " SET last_login = NOW() WHERE id = :id";
+            $query = "UPDATE " . $this->table_name . " SET last_login = NOW() WHERE id = ?";
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(":id", $this->id, PDO::PARAM_INT);
-            return $stmt->execute();
-        } catch (Exception $e) {
+            return $stmt->execute([$this->id]);
+        } catch (\Exception $e) {
             error_log("Error en User::updateLastLogin: " . $e->getMessage());
             return false;
         }
@@ -160,24 +173,42 @@ class User {
     public function update() {
         try {
             $query = "UPDATE " . $this->table_name . " 
-                      SET first_name=:first_name, last_name=:last_name, email=:email, updated_at=NOW()
-                      WHERE id=:id";
+                      SET first_name=?, last_name=?, email=?, updated_at=NOW()
+                      WHERE id=?";
             
             $stmt = $this->conn->prepare($query);
             
-            $this->first_name = htmlspecialchars(strip_tags($this->first_name));
-            $this->last_name = htmlspecialchars(strip_tags($this->last_name));
-            $this->email = htmlspecialchars(strip_tags($this->email));
-            $this->id = htmlspecialchars(strip_tags($this->id));
+            $first_name = htmlspecialchars(strip_tags($this->first_name));
+            $last_name = htmlspecialchars(strip_tags($this->last_name));
+            $email = htmlspecialchars(strip_tags($this->email));
             
-            $stmt->bindParam(":first_name", $this->first_name);
-            $stmt->bindParam(":last_name", $this->last_name);
-            $stmt->bindParam(":email", $this->email);
-            $stmt->bindParam(":id", $this->id);
-            
-            return $stmt->execute();
-        } catch (Exception $e) {
+            return $stmt->execute([$first_name, $last_name, $email, $this->id]);
+        } catch (\Exception $e) {
             error_log("Error en User::update: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Cambiar el estado de is_active
+    public function toggleStatus() {
+        try {
+            $query = "UPDATE " . $this->table_name . " SET is_active = ?, updated_at = NOW() WHERE id = ?";
+            $stmt = $this->conn->prepare($query);
+            return $stmt->execute([$this->is_active, $this->id]);
+        } catch (\Exception $e) {
+            error_log("Error en User::toggleStatus: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Desactivar (soft delete) un usuario
+    public function deactivate() {
+        try {
+            $query = "UPDATE " . $this->table_name . " SET is_active = 0, updated_at = NOW() WHERE id = ?";
+            $stmt = $this->conn->prepare($query);
+            return $stmt->execute([$this->id]);
+        } catch (\Exception $e) {
+            error_log("Error en User::deactivate: " . $e->getMessage());
             return false;
         }
     }
@@ -208,7 +239,7 @@ class User {
             $stats['new_users_month'] = $stmt->fetch(PDO::FETCH_ASSOC)['new_users'];
             
             return $stats;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Error obteniendo estadísticas de User: " . $e->getMessage());
             return [
                 'total_users' => 0,
@@ -226,37 +257,6 @@ class User {
     // Verificar si es administrador
     public function isAdmin() {
         return $this->role === 'admin';
-    }
-    
-    // Crear la tabla si no existe
-    private function createTableIfNotExists() {
-        try {
-            $query = "CREATE TABLE IF NOT EXISTS " . $this->table_name . " (
-                id INT(11) NOT NULL AUTO_INCREMENT,
-                email VARCHAR(255) NOT NULL UNIQUE,
-                password VARCHAR(255) NOT NULL,
-                first_name VARCHAR(100) NOT NULL,
-                last_name VARCHAR(100) NOT NULL,
-                role ENUM('user', 'admin') DEFAULT 'user',
-                is_active TINYINT(1) DEFAULT 1,
-                google_id VARCHAR(255) NULL,
-                last_login DATETIME NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (id),
-                INDEX idx_email (email),
-                INDEX idx_role (role),
-                INDEX idx_is_active (is_active)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-            
-            $stmt = $this->conn->prepare($query);
-            $stmt->execute();
-            
-            return true;
-        } catch (Exception $e) {
-            error_log("Error al crear la tabla users: " . $e->getMessage());
-            return false;
-        }
     }
 }
 ?>

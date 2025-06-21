@@ -1,368 +1,405 @@
-# El Profesor Hernán - E-commerce Platform
+DOCUMENTACIÓN DEL PROYECTO: PLATAFORMA DE CURSOS DE INGLÉS
 
-## Descripción del Proyecto
+================================================================================
 
-Plataforma de e-commerce especializada en cursos de inglés desarrollada en PHP con arquitectura MVC. El sistema permite la gestión completa de cursos, usuarios, pagos y contenido educativo.
+1. VISIÓN GENERAL DEL PROYECTO
+ ---------------------------
+ Este proyecto es una plataforma de e-commerce para la venta de cursos de inglés online. Permite a los usuarios registrarse, iniciar sesión, explorar cursos por nivel, añadir cursos al carrito, aplicar códigos promocionales y realizar compras seguras mediante Stripe. Los usuarios autenticados obtienen acceso a los cursos comprados y pueden ver su historial de compras. También incluye un panel de administración básico para la gestión de cursos (playlists y videos).
 
-## 🏗️ Arquitectura del Proyecto
+2. TECNOLOGÍAS UTILIZADAS
+ ----------------------
+ * Backend: PHP 7.4+ (o superior)
+ * Base de Datos: MySQL (MariaDB compatible)
+ * Frontend: HTML5, CSS3 (con Font Awesome para iconos), JavaScript
+ * Librerías PHP: Composer para gestión de dependencias (principalmente Stripe PHP Library)
+ * Pasarela de Pago: Stripe (para procesamiento de tarjetas de crédito/débito)
+ * Autenticación (Parcial): PHP Sessions. Se menciona Firebase en los scripts JS, pero la autenticación principal se maneja con sesiones PHP y una base de datos MySQL. Firebase está presente en el frontend pero no está completamente integrado para la autenticación del backend.
 
-### Estructura de Directorios
+3. ESTRUCTURA DE CARPETAS
+ -----------------------
+ .
+ ├── auth/
+ │   ├── auth.js                 # Lógica JS para Firebase Auth (no completamente integrada en backend)
+ │   └── firebase-config.js      # Configuración de Firebase para el frontend
+ ├── config/
+ │   └── Database.php            # Configuración de conexión a la base de datos
+ ├── controllers/
+ │   ├── AdminController.php     # Lógica para el panel de administración
+ │   ├── AuthController.php      # Lógica de registro, login, logout y gestión de sesiones
+ │   ├── CartController.php      # Lógica del carrito de compras y códigos promocionales
+ │   ├── PaymentController.php   # Lógica de integración con Stripe para pagos
+ │   ├── PlaylistController.php  # Lógica CRUD para playlists (cursos)
+ │   └── VideoController.php     # Lógica CRUD para videos dentro de playlists
+ ├── middleware/
+ │   └── AuthMiddleware.php      # Middleware para protección de rutas (requiere autenticación/rol)
+ ├── models/
+ │   ├── Order.php               # Modelo para la tabla 'orders' (pedidos)
+ │   ├── Playlist.php            # Modelo para la tabla 'playlists' (cursos)
+ │   ├── User.php                # Modelo para la tabla 'users' (usuarios)
+ │   ├── UserCourse.php          # Modelo para la tabla 'user_courses' (cursos comprados por usuarios)
+ │   └── Video.php               # Modelo para la tabla 'videos'
+ ├── public/
+ │   ├── css/                    # Archivos CSS (styles.css, auth.css, course-detail.css, admin.css)
+ │   ├── img/                    # Imágenes públicas (si las hay, duplicado de /img/ o para assets específicos)
+ │   └── uploads/                # Archivos subidos (videos/, images/, thumbnails/)
+ │       ├── images/             # Imágenes de portada de playlists
+ │       ├── thumbnails/         # Miniaturas de videos
+ │       └── videos/             # Archivos de video
+ ├── scripts/                    # Scripts SQL para la creación de tablas
+ │   ├── create_orders_table.sql
+ │   ├── create_playlists_table.sql
+ │   ├── create_user_courses_table.sql
+ │   ├── create_users_table.sql
+ │   └── create_videos_table.sql
+ ├── views/
+ │   ├── admin/                  # Vistas del panel de administración
+ │   │   ├── courses.php
+ │   │   ├── dashboard.php
+ │   │   ├── edit_playlist.php
+ │   │   ├── edit_video.php
+ │   │   ├── index.php           # Punto de entrada del panel admin
+ │   │   ├── view_playlist.php
+ │   │   └── view_video.php
+ │   └── client/                 # Vistas del lado del cliente
+ │       ├── all-courses.php     # Página para ver todos los cursos
+ │       ├── cart.php            # Página del carrito de compras
+ │       ├── checkout.php        # Página de finalización de compra (integración Stripe)
+ │       ├── course-detail.php   # Página de detalles de un curso
+ │       ├── home.php            # Página de inicio
+ │       ├── order-confirmation.php # Página de confirmación de pedido
+ │       └── purchase-history.php # Página de historial de compras del usuario
+ ├── vendor/                     # Dependencias de Composer (ej. stripe/stripe-php)
+ ├── composer.json               # Archivo de configuración de Composer
+ ├── composer.lock               # Archivo de bloqueo de Composer
+ ├── index.php                   # Router principal de la aplicación
+ ├── login.php                   # Página de login
+ ├── logout.php                  # Script de logout
+ └── signup.php                  # Página de registro
 
-\`\`\`
-E-commerce/
-├── config/
-│   └── Database.php                 # Configuración de base de datos
-├── controllers/
-│   ├── AdminController.php          # Controlador administrativo
-│   ├── AuthController.php           # Autenticación y autorización
-│   ├── CartController.php           # Gestión del carrito de compras
-│   ├── PaymentController.php        # Procesamiento de pagos
-│   ├── PlaylistController.php       # Gestión de cursos/playlists
-│   └── VideoController.php          # Gestión de videos
-├── models/
-│   ├── Order.php                    # Modelo de pedidos
-│   ├── Playlist.php                 # Modelo de cursos
-│   ├── User.php                     # Modelo de usuarios
-│   ├── UserCourse.php               # Relación usuario-curso
-│   └── Video.php                    # Modelo de videos
-├── views/
-│   ├── admin/                       # Vistas administrativas
-│   │   ├── courses.php
-│   │   ├── dashboard.php
-│   │   ├── edit_playlist.php
-│   │   ├── orders.php
-│   │   ├── settings.php
-│   │   ├── sidebar.php
-│   │   ├── upload_video.php
-│   │   └── users.php
-│   └── client/                      # Vistas del cliente
-│       ├── all-courses.php
-│       ├── cart.php
-│       ├── checkout.php
-│       ├── course-detail.php
-│       ├── home.php
-│       ├── order-confirmation.php
-│       └── purchase-history.php
-├── helpers/
-│   ├── SecurityHelper.php           # Funciones de seguridad
-│   ├── StripeHelper.php             # Integración con Stripe
-│   └── ValidationHelper.php        # Validaciones
-├── middleware/
-│   └── AuthMiddleware.php           # Middleware de autenticación
-├── includes/
-│   ├── footer.php                   # Footer global
-│   └── header.php                   # Header global
-├── public/
-│   └── css/
-│       ├── cart-improvements.css
-│       ├── checkout-improvements.css
-│       └── styles.css
-├── scripts/
-│   └── create-sample-data.sql       # Script de datos de prueba
-├── index.php                        # Página principal
-├── login.php                        # Página de login
-├── signup.php                       # Página de registro
-├── logout.php                       # Logout
-└── google-login.php                 # Login con Google
-\`\`\`
+4. ESQUEMA DE LA BASE DE DATOS
+ ---------------------------
+ Base de datos: ecommerce_cursos
 
-## 🛠️ Tecnologías Utilizadas
+ Tabla: users
+ CREATE TABLE IF NOT EXISTS users (
+     id INT(11) NOT NULL AUTO_INCREMENT,
+     email VARCHAR(255) NOT NULL UNIQUE,
+     password VARCHAR(255) NOT NULL,
+     first_name VARCHAR(100) NOT NULL,
+     last_name VARCHAR(100) NOT NULL,
+     role ENUM('user', 'admin') DEFAULT 'user',
+     is_active TINYINT(1) DEFAULT 1,
+     email_verified TINYINT(1) DEFAULT 0,
+     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     PRIMARY KEY (id)
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-### Backend
-- **PHP 8.0+**: Lenguaje principal del servidor
-- **MySQL 8.0+**: Base de datos relacional
-- **PDO**: Capa de abstracción de base de datos
-- **Sessions**: Manejo de sesiones de usuario
+ * id: ID único del usuario.
+ * email: Correo electrónico del usuario (único).
+ * password: Contraseña hasheada (usando password_hash).
+ * first_name, last_name: Nombre y apellido del usuario.
+ * role: Rol del usuario (user o admin).
+ * is_active: Indica si la cuenta está activa.
+ * email_verified: Indica si el email ha sido verificado (funcionalidad no implementada completamente).
+ * created_at, updated_at: Timestamps de creación y última actualización.
 
-### Frontend
-- **HTML5**: Estructura semántica
-- **CSS3**: Estilos con variables CSS y Flexbox/Grid
-- **JavaScript (Vanilla)**: Interactividad del cliente
-- **Font Awesome 6.0**: Iconografía
+ Tabla: playlists (Cursos)
+ CREATE TABLE IF NOT EXISTS playlists (
+     id INT(11) NOT NULL AUTO_INCREMENT,
+     name VARCHAR(255) NOT NULL,
+     description TEXT,
+     level VARCHAR(50), -- Ej: A1, A2, B1, B2, C1, Mixto
+     cover_image VARCHAR(255), -- Ruta a la imagen de portada
+     price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     PRIMARY KEY (id)
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-### Integraciones
-- **Stripe API**: Procesamiento de pagos
-- **Google OAuth**: Autenticación social
-- **cURL**: Comunicación HTTP
+ * id: ID único de la playlist/curso.
+ * name: Nombre del curso.
+ * description: Descripción detallada del curso.
+ * level: Nivel de inglés del curso.
+ * cover_image: Ruta del archivo de imagen de portada.
+ * price: Precio del curso.
 
-### Herramientas de Desarrollo
-- **XAMPP**: Entorno de desarrollo local
-- **phpMyAdmin**: Administración de base de datos
-- **Git**: Control de versiones
+ Tabla: videos
+ CREATE TABLE IF NOT EXISTS videos (
+     id INT(11) NOT NULL AUTO_INCREMENT,
+     title VARCHAR(255) NOT NULL,
+     description TEXT,
+     file_path VARCHAR(255), -- Ruta al archivo de video
+     thumbnail_image VARCHAR(255), -- Ruta a la miniatura del video
+     playlist_id INT(11) NOT NULL,
+     duration VARCHAR(20), -- Duración del video (ej. "10:30")
+     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     PRIMARY KEY (id),
+     FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-## 🚀 Configuración del Entorno de Desarrollo
+ * id: ID único del video.
+ * title: Título del video.
+ * description: Descripción del video.
+ * file_path: Ruta al archivo de video.
+ * thumbnail_image: Ruta de la imagen de miniatura del video.
+ * playlist_id: Clave foránea a la tabla playlists. ON DELETE CASCADE significa que si se elimina una playlist, sus videos asociados también se eliminan.
+ * duration: Duración del video (ej. "10:30").
 
-### Prerrequisitos
-- XAMPP 8.0+ o similar (Apache + PHP + MySQL)
-- Composer (opcional, para dependencias futuras)
-- Git
-- Navegador web moderno
+ Tabla: orders (Pedidos)
+ CREATE TABLE IF NOT EXISTS orders (
+     id INT(11) NOT NULL AUTO_INCREMENT,
+     user_id INT(11) NOT NULL,
+     transaction_id VARCHAR(255) NOT NULL UNIQUE, -- ID de transacción de la pasarela de pago (ej. Stripe Charge ID)
+     amount DECIMAL(10,2) NOT NULL,
+     currency VARCHAR(3) NOT NULL, -- Ej: USD, MXN, COP
+     status VARCHAR(20) NOT NULL, -- Ej: pending, completed, failed, refunded
+     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+     PRIMARY KEY (id),
+     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-### Instalación
+ * id: ID único del pedido.
+ * user_id: Clave foránea a la tabla users.
+ * transaction_id: ID único de la transacción proporcionado por la pasarela de pago.
+ * amount: Monto total del pedido.
+ * currency: Moneda del pedido.
+ * status: Estado actual del pedido.
 
-1. **Clonar el repositorio**
-   \`\`\`bash
-   git clone [URL_DEL_REPOSITORIO]
-   cd E-commerce
-   \`\`\`
+ Tabla: user_courses (Cursos comprados por usuarios)
+ CREATE TABLE IF NOT EXISTS user_courses (
+     id INT(11) NOT NULL AUTO_INCREMENT,
+     user_id INT(11) NOT NULL,
+     playlist_id INT(11) NOT NULL,
+     order_id INT(11) NOT NULL,
+     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+     PRIMARY KEY (id),
+     UNIQUE KEY user_playlist (user_id, playlist_id), -- Asegura que un usuario solo pueda tener acceso a un curso una vez
+     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+     FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-2. **Configurar XAMPP**
-   - Iniciar Apache y MySQL
-   - Colocar el proyecto en `htdocs/E-commerce/`
+ * id: ID único del registro de acceso.
+ * user_id: Clave foránea a la tabla users.
+ * playlist_id: Clave foránea a la tabla playlists.
+ * order_id: Clave foránea a la tabla orders (el pedido que otorgó este acceso).
+ * created_at: Timestamp de cuando se otorgó el acceso.
+ * UNIQUE KEY user_playlist: Restricción para evitar que un usuario compre el mismo curso varias veces.
 
-3. **Configurar la base de datos**
-   \`\`\`sql
-   CREATE DATABASE ecommerce_hernan;
-   USE ecommerce_hernan;
-   \`\`\`
+5. FLUJOS DE LA APLICACIÓN (ARQUITECTURA MVC-LIKE)
+ -----------------------------------------------
+ La aplicación sigue una estructura similar a MVC (Modelo-Vista-Controlador), aunque con un router simple basado en index.php.
 
-4. **Ejecutar scripts de inicialización**
-   \`\`\`bash
-   # Ejecutar desde phpMyAdmin o línea de comandos
-   mysql -u root -p ecommerce_hernan < scripts/create-sample-data.sql
-   \`\`\`
+ * index.php (Router Principal):
+   - Es el punto de entrada de todas las solicitudes.
+   - Analiza los parámetros controller y action de la URL (index.php?controller=X&action=Y).
+   - Instancia el controlador correspondiente (ej. AuthController, CartController, PaymentController, PlaylistController, VideoController, AdminController).
+   - Llama al método action especificado en ese controlador.
+   - Si no se especifica controller o action, por defecto redirige a views/client/home.php.
 
-5. **Configurar variables de entorno**
-   \`\`\`php
-   // En config/Database.php
-   private $host = "localhost";
-   private $db_name = "ecommerce_hernan";
-   private $username = "root";
-   private $password = "";
-   \`\`\`
+ * Controladores (controllers/):
+   - Contienen la lógica de negocio.
+   - Interactúan con los Modelos para obtener/guardar datos.
+   - Deciden qué Vista cargar y qué datos pasarle.
+   - Manejan redirecciones (header('Location: ...')).
+   - Ejemplos:
+     * AuthController: Maneja el registro, login, logout, creación de sesiones.
+     * CartController: Gestiona el carrito de compras (añadir/eliminar items, aplicar promociones).
+     * PaymentController: Orquesta el proceso de pago con Stripe, crea pedidos y otorga acceso a cursos.
+     * PlaylistController, VideoController: Manejan el CRUD de cursos y videos, incluyendo subida de archivos.
+     * AdminController: Lógica para el dashboard y otras funciones administrativas.
 
-6. **Configurar Stripe (opcional)**
-   \`\`\`php
-   // En helpers/StripeHelper.php
-   private $publishable_key = "pk_test_...";
-   private $secret_key = "sk_test_...";
-   \`\`\`
+ * Modelos (models/):
+   - Representan las tablas de la base de datos.
+   - Contienen la lógica para interactuar con la base de datos (CRUD).
+   - No deben contener lógica de negocio compleja ni interactuar directamente con las Vistas.
+   - Ejemplos: User.php, Playlist.php, Video.php, Order.php, UserCourse.php.
+   - Incluyen métodos para crear tablas si no existen, lo que ayuda en la configuración inicial.
 
-### Acceso a la Aplicación
-- **URL Principal**: `http://localhost/E-commerce/`
-- **Panel Admin**: `http://localhost/E-commerce/views/admin/dashboard.php`
-- **Login**: `http://localhost/E-commerce/login.php`
+ * Vistas (views/):
+   - Contienen el código HTML y PHP para renderizar la interfaz de usuario.
+   - Reciben datos de los Controladores y los muestran.
+   - No deben contener lógica de negocio ni interactuar directamente con la base de datos.
+   - Separadas en client/ (para usuarios finales) y admin/ (para el panel de administración).
 
-## 📊 Estructura de Base de Datos
+6. SISTEMA DE AUTENTICACIÓN
+ -------------------------
+ * Registro (signup.php -> AuthController::register()):
+   - Recoge datos del formulario (nombre, apellido, email, contraseña).
+   - Valida los datos.
+   - Hashea la contraseña (password_hash).
+   - Crea un nuevo usuario en la tabla users.
+   - Si es exitoso, crea una sesión para el usuario y lo redirige a home.php.
 
-### Tablas Principales
+ * Login (login.php -> AuthController::login()):
+   - Recoge email y contraseña.
+   - Busca el usuario por email en la base de datos.
+   - Verifica la contraseña hasheada (password_verify).
+   - Si es exitoso, crea una sesión ($_SESSION['logged_in'], $_SESSION['user_id'], $_SESSION['user_role'], etc.).
+   - Redirige al usuario según su rol (user a home.php, admin a admin/dashboard.php).
 
-#### users
-\`\`\`sql
-CREATE TABLE users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('user', 'admin') DEFAULT 'user',
-    google_id VARCHAR(255) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login TIMESTAMP NULL
-);
-\`\`\`
+ * Logout (logout.php -> AuthController::logout()):
+   - Destruye la sesión PHP y redirige a login.php.
 
-#### playlists (cursos)
-\`\`\`sql
-CREATE TABLE playlists (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    price DECIMAL(10,2) DEFAULT 0.00,
-    level VARCHAR(10),
-    cover_image VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-\`\`\`
+ * Gestión de Sesiones:
+   - Se utiliza session_start() al inicio de cada script PHP que necesite acceso a la sesión.
+   - $_SESSION['logged_in'] indica el estado de autenticación.
+   - $_SESSION['user_role'] se usa para control de acceso basado en roles.
 
-#### orders
-\`\`\`sql
-CREATE TABLE orders (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    total_amount DECIMAL(10,2) NOT NULL,
-    currency VARCHAR(3) DEFAULT 'USD',
-    status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
-    stripe_payment_intent_id VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-\`\`\`
+ * Mensajes Flash (AuthController::setFlashMessage, AuthController::getFlashMessage):
+   - Permiten mostrar mensajes temporales (éxito/error) después de una redirección. Los mensajes se almacenan en $_SESSION y se eliminan después de ser mostrados.
 
-#### user_courses
-\`\`\`sql
-CREATE TABLE user_courses (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    playlist_id INT NOT NULL,
-    access_granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (playlist_id) REFERENCES playlists(id),
-    UNIQUE KEY unique_user_course (user_id, playlist_id)
-);
-\`\`\`
+ * Middleware (middleware/AuthMiddleware.php):
+   - Contiene métodos estáticos (requireAuth(), requireAdmin(), requireUser(), redirectIfAuthenticated()) para proteger rutas.
+   - Se incluye y se llama al inicio de los scripts que necesitan protección.
+   - Ejemplo: AuthMiddleware::requireAdmin(); al inicio de las vistas de administración.
 
-## 🔧 Funcionalidades Principales
+ * Firebase (Nota): Los archivos auth/firebase-config.js y auth/auth.js están presentes, lo que sugiere una posible integración futura o parcial de Firebase para la autenticación del lado del cliente, pero la lógica de autenticación del backend se basa en PHP Sessions y MySQL.
 
-### Sistema de Autenticación
-- **Registro/Login tradicional**: Email y contraseña
-- **Login con Google**: OAuth 2.0
-- **Gestión de sesiones**: Segura con tokens
-- **Roles de usuario**: Admin y Usuario regular
+7. GESTIÓN DE CURSOS (ADMIN)
+ --------------------------
+ * Controladores: PlaylistController.php y VideoController.php manejan las operaciones CRUD.
+ * Vistas: views/admin/ contiene las interfaces para crear, ver, editar y eliminar playlists y videos.
+ * Subida de Archivos:
+   - PlaylistController maneja cover_image (imágenes de portada de cursos).
+   - VideoController maneja file_path (archivos de video MP4) y thumbnail_image (miniaturas de video).
+   - Los archivos se guardan en public/uploads/images/, public/uploads/videos/ y public/uploads/thumbnails/ respectivamente.
+   - Se implementa lógica para eliminar archivos antiguos al actualizar o eliminar registros.
 
-### Gestión de Cursos
-- **CRUD completo**: Crear, leer, actualizar, eliminar
-- **Subida de videos**: Gestión de contenido multimedia
-- **Categorización**: Por niveles (A1, A2, B1, B2, C1, C2)
-- **Imágenes de portada**: Upload y gestión
+8. CARRITO DE COMPRAS Y CHECKOUT
+ -------------------------------
+ * Carrito (CartController.php):
+   - El carrito se gestiona en la sesión PHP ($_SESSION['cart']).
+   - add($playlist_id): Añade un curso al carrito. Los cursos se almacenan como arrays asociativos con id, name, price, cover_image, quantity (siempre 1 para cursos).
+   - remove($playlist_id): Elimina un curso del carrito.
+   - applyPromoCode($code): Aplica un código promocional (definidos en $promo_codes en el controlador) y calcula el descuento.
+   - calculateTotals($items): Calcula el subtotal, descuento, impuesto (7%) y total final del carrito.
 
-### Sistema de Carrito
-- **Agregar/Eliminar**: Gestión dinámica de items
-- **Persistencia**: Mantiene estado entre sesiones
-- **Códigos promocionales**: Sistema de descuentos
-- **Cálculo de totales**: Subtotal, impuestos, descuentos
+ * Checkout (PaymentController::checkout() y views/client/checkout.php):
+   - La acción cart.php?action=checkout redirige al PaymentController::checkout().
+   - PaymentController::checkout() prepara los datos del carrito y los totales, y luego incluye la vista views/client/checkout.php.
+   - La vista checkout.php muestra el resumen del pedido y el formulario de pago.
 
-### Procesamiento de Pagos
-- **Integración Stripe**: Pagos seguros con tarjeta
-- **Webhooks**: Confirmación automática de pagos
-- **Gestión de pedidos**: Seguimiento completo
-- **Acceso automático**: Asignación de cursos post-pago
+9. INTEGRACIÓN DE PAGOS CON STRIPE
+ ---------------------------------
+ * Claves API:
+   - sk_test_51Ra0H5EIqBlXSQrI4Fjzj7GA4NUPM6OeG7FvxVqIySnQyJGByfodso8s5UVvTmw2LzwDOsvMf3FN6fzucdxjbDZY00rYqJgkYV (Secret Key - Backend)
+   - pk_test_51Ra0H5EIqBlXSQrI3JkmyctAonU9YzM9ezg1w2kmBFuTKZxEDRudatwcoRHzAEbH2vx1AUbZyPt4loE7qSNwhnrD00LR7GSHXF (Publishable Key - Frontend)
+   - Estas claves deben configurarse en controllers/PaymentController.php.
 
-### Panel Administrativo
-- **Dashboard**: Estadísticas y métricas
-- **Gestión de usuarios**: CRUD y permisos
-- **Gestión de cursos**: Contenido y precios
-- **Gestión de pedidos**: Estados y seguimiento
+ * Instalación de la Librería PHP:
+   - Se requiere Composer: composer require stripe/stripe-php.
+   - require_once __DIR__ . '/../vendor/autoload.php'; se usa para cargar la librería.
 
-## 🔒 Seguridad Implementada
+ * Flujo de Pago (PaymentController::processPayment()):
+   1. Frontend (checkout.php JavaScript):
+      - Carga Stripe.js (<script src="https://js.stripe.com/v3/"></script>).
+      - Inicializa Stripe con la clave publicable (Stripe('pk_...')).
+      - Crea un elemento card de Stripe Elements para la entrada segura de datos de tarjeta.
+      - Cuando el usuario hace clic en "Completar Compra", el JavaScript llama a stripe.createToken(cardElement).
+      - Stripe tokeniza la información de la tarjeta en el navegador y devuelve un stripeToken (un ID único que representa la tarjeta, sin exponer los datos sensibles).
+      - Este stripeToken se añade como un campo oculto al formulario y se envía al backend.
 
-### Autenticación y Autorización
-- **Hash de contraseñas**: password_hash() con BCRYPT
-- **Tokens CSRF**: Protección contra ataques CSRF
-- **Validación de sesiones**: Verificación en cada request
-- **Middleware de autenticación**: Control de acceso
+   2. Backend (PaymentController::processPayment()):
+      - Recibe el stripeToken y otros datos del formulario (información del usuario, carrito).
+      - Recalcula el total del carrito en el servidor para evitar manipulaciones del lado del cliente.
+      - Utiliza la Stripe PHP Library para crear un cargo (\Stripe\Charge::create()) usando el stripeToken, el monto total (en centavos), la moneda, y metadatos relevantes (ID de usuario, items del carrito).
+      - Si el cargo es exitoso ($charge->status === 'succeeded'):
+        * Registra el pedido en la tabla orders con el transaction_id de Stripe y el estado 'completed'.
+        * Otorga acceso a los cursos comprados registrando entradas en la tabla user_courses para cada curso del pedido.
+        * Limpia el carrito de la sesión.
+        * Redirige a views/client/order-confirmation.php con el ID del pedido.
+      - Si el cargo falla (ej. tarjeta rechazada, error de API):
+        * Captura las excepciones de Stripe (\Stripe\Exception\CardException, Exception).
+        * Establece un mensaje flash de error y redirige de vuelta a la página de checkout o carrito.
 
-### Validación de Datos
-- **Sanitización**: htmlspecialchars() en todas las salidas
-- **Validación de entrada**: Filtros y validaciones
-- **Prepared statements**: Prevención de SQL injection
-- **Validación de archivos**: Tipos y tamaños permitidos
+ * Confirmación de Pedido (views/client/order-confirmation.php):
+   - Muestra los detalles del pedido recién completado.
+   - Proporciona enlaces para volver a comprar o ver el historial de compras.
 
-### Comunicación Segura
-- **HTTPS recomendado**: Para producción
-- **Headers de seguridad**: CSP, HSTS, etc.
-- **Validación de origen**: CORS y referrer
+ * Historial de Compras (views/client/purchase-history.php):
+   - Muestra todos los pedidos realizados por el usuario actual (Order::readByUserId()).
+   - Muestra una lista de todos los cursos a los que el usuario tiene acceso (UserCourse::getPurchasedPlaylistsByUserId()).
+   - Permite acceder directamente a la página de detalles del curso comprado.
 
-## 🧪 Testing y Debugging
+10. LÓGICA DE ACCESO A CURSOS
+  --------------------------
+  * La tabla user_courses es clave para gestionar el acceso.
+  * UserCourse::grantAccess($user_id, $playlist_id, $order_id): Registra que un usuario ha comprado un curso específico. Incluye una restricción UNIQUE KEY (user_id, playlist_id) para evitar duplicados.
+  * UserCourse::hasAccess($user_id, $playlist_id): Verifica si un usuario ya tiene acceso a un curso.
+  * En las Vistas (home.php, all-courses.php, course-detail.php):
+    - Se utiliza UserCourse::hasAccess() para determinar si el usuario ya compró un curso.
+    - Si hasAccess es true, el botón "Añadir al Carrito" cambia a "Acceder al Curso" y redirige a la página de detalles del curso.
+    - En course-detail.php, los videos individuales dentro del currículum se muestran como "bloqueados" si el usuario no ha comprado el curso, y "desbloqueados" con un enlace para ver el video si tiene acceso.
 
-### Pruebas Manuales
-1. **Registro de usuario**
-   - Crear cuenta nueva
-   - Validar email único
-   - Verificar hash de contraseña
+11. MANEJO DE ERRORES Y SEGURIDAD
+  ------------------------------
+  * Mensajes Flash: Se utilizan para comunicar errores y éxitos al usuario de manera no intrusiva.
+  * Validación de Entrada: Se realizan validaciones básicas en el backend (ej. en AuthController para registro/login, y en PaymentController para el carrito y el token de Stripe).
+  * Sanitización de Datos: Se usa htmlspecialchars(strip_tags(...)) para limpiar los datos antes de insertarlos en la base de datos o mostrarlos en HTML, previniendo ataques XSS.
+  * Contraseñas Hasheadas: Las contraseñas se almacenan hasheadas con password_hash y se verifican con password_verify.
+  * Manejo de Excepciones PDO: Los modelos incluyen bloques try-catch para manejar errores de base de datos y registrarlos con error_log().
+  * Creación Automática de Tablas: Los modelos Order.php y UserCourse.php incluyen lógica para crear sus tablas si no existen, lo que facilita la configuración inicial y previene errores de "tabla no encontrada".
+  * Stripe.js: La integración de Stripe Elements maneja la recolección segura de datos de tarjeta, asegurando el cumplimiento de PCI DSS al no tocar los datos sensibles en el servidor.
+  * Recálculo de Totales en Servidor: El monto final del pago se recalcula en el backend para evitar que un usuario manipule el precio en el frontend.
 
-2. **Funcionalidad del carrito**
-   - Agregar cursos
-   - Verificar persistencia
-   - Calcular totales
+12. NOTAS DE DESPLIEGUE
+  -------------------
+  * Composer: Asegúrate de que composer install se ejecute en el entorno de producción para instalar todas las dependencias (especialmente Stripe).
+  * Claves de Stripe: MUY IMPORTANTE: Reemplaza las claves de prueba (pk_test_..., sk_test_...) en controllers/PaymentController.php con tus claves en vivo (pk_live_..., sk_live_...) antes de desplegar a producción.
+  * HTTPS: Tu sitio web DEBE usar HTTPS en producción. Stripe lo exige por seguridad y para el cumplimiento de PCI DSS.
+  * Webhooks de Stripe: Para una gestión robusta de pagos (ej. para manejar pagos asíncronos, reembolsos, disputas, o eventos de fraude), se recomienda encarecidamente configurar webhooks de Stripe. Esto implica crear un endpoint en tu servidor que Stripe pueda llamar para notificarte sobre eventos de pago importantes. Esta funcionalidad no está implementada en el código actual y sería una mejora crítica para producción.
+  * Permisos de Archivos: Asegúrate de que el directorio public/uploads/ y sus subdirectorios (images/, videos/, thumbnails/) tengan permisos de escritura para el servidor web.
+  * Configuración de PHP: Asegúrate de que session.auto_start esté deshabilitado en php.ini (si no lo está ya) y que session_start() se llame explícitamente donde sea necesario.
 
-3. **Proceso de pago**
-   - Checkout completo
-   - Confirmación de pago
-   - Asignación de acceso
+13. MEJORAS FUTURAS / PROBLEMAS CONOCIDOS (A CONSIDERAR)
+  ----------------------------------------------------
+  * Integración Completa de Firebase Auth: Actualmente, Firebase solo se usa en el frontend. Se podría integrar Firebase Admin SDK en el backend para una autenticación más robusta y unificada.
+  * Gestión de Errores Más Sofisticada: Implementar un sistema de logging más avanzado (ej. PSR-3 Logger) para registrar errores de manera estructurada.
+  * Panel de Administración Completo: Añadir vistas para gestionar usuarios, ver pedidos, gestionar códigos promocionales, etc.
+  * Perfiles de Usuario: Permitir a los usuarios editar su información personal.
+  * Funcionalidad de Búsqueda: Implementar búsqueda de cursos.
+  * Paginación: Para listas largas de cursos o videos.
+  * Validación de Formularios Frontend: Aunque hay validación básica, se podría mejorar con JavaScript más avanzado para una mejor UX.
+  * Notificaciones por Correo Electrónico: Enviar correos de confirmación de pedido, restablecimiento de contraseña, etc.
+  * Seguridad Adicional: Implementar CSRF tokens para todos los formularios POST.
+  * Optimización de Imágenes/Videos: Comprimir y optimizar los archivos subidos.
+  * Internacionalización (i18n): Soporte para múltiples idiomas.
 
-4. **Panel administrativo**
-   - Crear/editar cursos
-   - Gestionar usuarios
-   - Ver estadísticas
+================================================================================
 
-### Debugging
-- **Error logging**: error_log() en puntos críticos
-- **Console logging**: JavaScript para frontend
-- **Database queries**: Log de consultas SQL
-- **Session debugging**: Verificar variables de sesión
+CÓDIGOS PROMOCIONALES DISPONIBLES EN EL SISTEMA:
+- 'SAVE10': 10% de descuento
+- 'SAVE20': 20% de descuento  
+- 'SAVE30': 30% de descuento
+- 'STUDENT': 15% de descuento
+- 'WELCOME': 25% de descuento
+- 'PROMO50': 50% de descuento
 
-## 🚀 Despliegue en Producción
+ESTRUCTURA URL DEL ROUTER:
+- Página principal: index.php (redirige a views/client/home.php)
+- Login/Registro: login.php, signup.php
+- Logout: logout.php
+- Panel Admin: index.php?controller=admin&action=dashboard
+- Carrito: index.php?controller=cart&action=view
+- Checkout: index.php?controller=payment&action=checkout
+- Procesar Pago: index.php?controller=payment&action=processPayment
+- Gestión Cursos Admin: index.php?controller=playlist&action=...
+- Gestión Videos Admin: index.php?controller=video&action=...
 
-### Configuración del Servidor
-1. **Servidor web**: Apache/Nginx con PHP 8.0+
-2. **Base de datos**: MySQL 8.0+ o MariaDB
-3. **SSL/TLS**: Certificado válido para HTTPS
-4. **PHP extensions**: PDO, cURL, GD, OpenSSL
+CONFIGURACIÓN DE BASE DE DATOS REQUERIDA:
+- Host: localhost (o el host de tu base de datos)
+- Nombre BD: ecommerce_cursos
+- Usuario: (definir según tu configuración)
+- Contraseña: (definir según tu configuración)
+- Puerto: 3306 (por defecto MySQL)
 
-### Variables de Entorno
-\`\`\`php
-// Configuración de producción
-define('DB_HOST', 'your-db-host');
-define('DB_NAME', 'your-db-name');
-define('DB_USER', 'your-db-user');
-define('DB_PASS', 'your-db-password');
-define('STRIPE_SECRET_KEY', 'sk_live_...');
-define('STRIPE_PUBLISHABLE_KEY', 'pk_live_...');
-\`\`\`
+ARCHIVOS DE CONFIGURACIÓN IMPORTANTES:
+- config/Database.php: Configuración de conexión a BD
+- controllers/PaymentController.php: Claves de Stripe (CAMBIAR A PRODUCCIÓN)
+- composer.json: Dependencias PHP (principalmente Stripe)
 
-### Optimizaciones
-- **Compresión GZIP**: Reducir tamaño de respuestas
-- **Cache de archivos**: Headers de cache apropiados
-- **Minificación**: CSS y JavaScript
-- **CDN**: Para archivos estáticos
-
-## 📈 Métricas y Monitoreo
-
-### KPIs del Sistema
-- **Usuarios registrados**: Total y por período
-- **Cursos vendidos**: Ingresos y conversión
-- **Tasa de abandono**: Carrito y checkout
-- **Tiempo de respuesta**: Performance del servidor
-
-### Logs Importantes
-- **Errores de aplicación**: PHP error log
-- **Transacciones**: Log de pagos y pedidos
-- **Acceso de usuarios**: Login/logout events
-- **Actividad admin**: Cambios en el sistema
-
-## 🔄 Mantenimiento y Actualizaciones
-
-### Tareas Regulares
-- **Backup de base de datos**: Diario automático
-- **Limpieza de logs**: Rotación semanal
-- **Actualización de dependencias**: Mensual
-- **Revisión de seguridad**: Trimestral
-
-### Monitoreo de Salud
-- **Uptime**: Disponibilidad del servicio
-- **Performance**: Tiempo de respuesta
-- **Errores**: Rate de errores 4xx/5xx
-- **Capacidad**: Uso de recursos del servidor
-
-## 🤝 Contribución y Desarrollo
-
-### Estándares de Código
-- **PSR-12**: Estándar de codificación PHP
-- **Comentarios**: Documentación en código
-- **Naming conventions**: CamelCase para clases, snake_case para variables
-- **Error handling**: Try-catch apropiado
-
-### Flujo de Desarrollo
-1. **Feature branch**: Crear rama para nueva funcionalidad
-2. **Testing**: Pruebas locales completas
-3. **Code review**: Revisión de código
-4. **Merge**: Integración a rama principal
-5. **Deploy**: Despliegue a producción
-
-## 📞 Soporte y Contacto
-
-### Documentación Técnica
-- **API Reference**: Documentación de endpoints
-- **Database Schema**: Diagrama ER actualizado
-- **Deployment Guide**: Guía de despliegue detallada
-
-### Resolución de Problemas Comunes
-- **Carrito vacío**: Verificar sesiones PHP
-- **Pagos fallidos**: Revisar configuración Stripe
-- **Login issues**: Validar hash de contraseñas
-- **Performance**: Optimizar consultas SQL
-
----
-
-*Documentación actualizada: Enero 2024*
-*Versión del proyecto: 1.0.0*
+================================================================================
+FIN DE LA DOCUMENTACIÓN

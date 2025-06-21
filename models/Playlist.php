@@ -16,6 +16,7 @@ class Playlist {
     public $description;
     public $thumbnail;
     public $price;
+    public $level;
     public $created_at;
     public $updated_at;
     
@@ -29,178 +30,192 @@ class Playlist {
     }
     
     public function create() {
-        $query = "INSERT INTO " . $this->table_name . " 
-                  SET title=:title, description=:description, thumbnail=:thumbnail, price=:price";
-        
-        $stmt = $this->conn->prepare($query);
-        
-        $this->title = htmlspecialchars(strip_tags($this->title));
-        $this->description = htmlspecialchars(strip_tags($this->description));
-        $this->thumbnail = htmlspecialchars(strip_tags($this->thumbnail));
-        $this->price = htmlspecialchars(strip_tags($this->price));
-        
-        $stmt->bindParam(":title", $this->title);
-        $stmt->bindParam(":description", $this->description);
-        $stmt->bindParam(":thumbnail", $this->thumbnail);
-        $stmt->bindParam(":price", $this->price);
-        
-        if($stmt->execute()) {
-            $this->id = $this->conn->lastInsertId();
-            return true;
+        try {
+            error_log("Playlist::create - Iniciando creación");
+            error_log("Datos: title=" . $this->title . ", description=" . $this->description . ", price=" . $this->price);
+            
+            $query = "INSERT INTO " . $this->table_name . " 
+                      (title, description, thumbnail, price, level) 
+                      VALUES (?, ?, ?, ?, ?)";
+            
+            $stmt = $this->conn->prepare($query);
+            
+            if (!$stmt) {
+                error_log("Error preparando query: " . print_r($this->conn->errorInfo(), true));
+                return false;
+            }
+            
+            // Sanitizar datos
+            $title = htmlspecialchars(strip_tags($this->title ?? ''));
+            $description = htmlspecialchars(strip_tags($this->description ?? ''));
+            $thumbnail = htmlspecialchars(strip_tags($this->thumbnail ?? ''));
+            $price = floatval($this->price ?? 0);
+            $level = htmlspecialchars(strip_tags($this->level ?? 'A1'));
+            
+            $result = $stmt->execute([$title, $description, $thumbnail, $price, $level]);
+            
+            if ($result) {
+                $this->id = $this->conn->lastInsertId();
+                error_log("Playlist::create - Éxito! ID: " . $this->id);
+                return true;
+            } else {
+                error_log("Error ejecutando query: " . print_r($stmt->errorInfo(), true));
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log("Playlist::create - Excepción: " . $e->getMessage());
+            return false;
         }
-        
-        return false;
     }
     
-    public function read() {
-        $query = "SELECT * FROM " . $this->table_name . " ORDER BY created_at DESC";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt;
+    public function update() {
+        try {
+            error_log("Playlist::update - Actualizando ID: " . $this->id);
+            
+            $query = "UPDATE " . $this->table_name . " 
+                      SET title=?, description=?, thumbnail=?, price=?, level=? 
+                      WHERE id=?";
+            
+            $stmt = $this->conn->prepare($query);
+            
+            if (!$stmt) {
+                error_log("Error preparando query update: " . print_r($this->conn->errorInfo(), true));
+                return false;
+            }
+            
+            // Sanitizar datos
+            $title = htmlspecialchars(strip_tags($this->title ?? ''));
+            $description = htmlspecialchars(strip_tags($this->description ?? ''));
+            $thumbnail = htmlspecialchars(strip_tags($this->thumbnail ?? ''));
+            $price = floatval($this->price ?? 0);
+            $level = htmlspecialchars(strip_tags($this->level ?? 'A1'));
+            $id = intval($this->id);
+            
+            $result = $stmt->execute([$title, $description, $thumbnail, $price, $level, $id]);
+            
+            if ($result) {
+                error_log("Playlist::update - Éxito actualizando ID: " . $id);
+                return true;
+            } else {
+                error_log("Error ejecutando update: " . print_r($stmt->errorInfo(), true));
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log("Playlist::update - Excepción: " . $e->getMessage());
+            return false;
+        }
     }
     
     public function readAll() {
         try {
-            $query = "SELECT * FROM " . $this->table_name . " ORDER BY created_at DESC";
+            $query = "SELECT id, title, description, thumbnail, price, level, created_at, updated_at 
+                      FROM " . $this->table_name . " 
+                      ORDER BY created_at DESC";
+            
             $stmt = $this->conn->prepare($query);
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            error_log("Playlist::readAll - Encontrados " . count($results) . " registros");
+            
+            return array_map(function($row) {
+                return [
+                    'id' => intval($row['id']),
+                    'name' => $row['title'] ?? $row['name'] ?? 'Curso sin título', // Compatibilidad name/title
+                    'title' => $row['title'] ?? $row['name'] ?? 'Curso sin título', // Mantener ambos campos
+                    'description' => $row['description'] ?? 'Sin descripción',
+                    'cover_image' => $row['thumbnail'] ?? '', // Mapear thumbnail a cover_image
+                    'thumbnail' => $row['thumbnail'] ?? '', // Mantener thumbnail también
+                    'price' => floatval($row['price'] ?? 0),
+                    'level' => $row['level'] ?? 'A1',
+                    'created_at' => $row['created_at'] ?? date('Y-m-d H:i:s'),
+                    'updated_at' => $row['updated_at'] ?? date('Y-m-d H:i:s')
+                ];
+            }, $results);
+            
         } catch (Exception $e) {
-            error_log("Error en readAll de Playlist: " . $e->getMessage());
+            error_log("Playlist::readAll - Error: " . $e->getMessage());
             return [];
         }
     }
     
     public function readOne() {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
-        $stmt->execute();
-        
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if($row) {
-            $this->title = $row['title'];
-            $this->description = $row['description'];
-            $this->thumbnail = $row['thumbnail'];
-            $this->price = $row['price'];
-            $this->created_at = $row['created_at'];
-            $this->updated_at = $row['updated_at'];
-            return true;
-        }
-        
-        return false;
-    }
-    
-    public function update() {
-        $query = "UPDATE " . $this->table_name . " 
-                  SET title=:title, description=:description, thumbnail=:thumbnail, price=:price 
-                  WHERE id=:id";
-        
-        $stmt = $this->conn->prepare($query);
-        
-        $this->title = htmlspecialchars(strip_tags($this->title));
-        $this->description = htmlspecialchars(strip_tags($this->description));
-        $this->thumbnail = htmlspecialchars(strip_tags($this->thumbnail));
-        $this->price = htmlspecialchars(strip_tags($this->price));
-        $this->id = htmlspecialchars(strip_tags($this->id));
-        
-        $stmt->bindParam(":title", $this->title);
-        $stmt->bindParam(":description", $this->description);
-        $stmt->bindParam(":thumbnail", $this->thumbnail);
-        $stmt->bindParam(":price", $this->price);
-        $stmt->bindParam(":id", $this->id);
-        
-        return $stmt->execute();
-    }
-    
-    public function delete() {
-        $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
-        
-        return $stmt->execute();
-    }
-    
-    public function getStats() {
         try {
-            $stats = [];
+            $query = "SELECT id, title, description, thumbnail, price, level, created_at, updated_at 
+                      FROM " . $this->table_name . " 
+                      WHERE id = ? LIMIT 1";
             
-            // Total de playlists
-            $query = "SELECT COUNT(*) as total FROM " . $this->table_name;
             $stmt = $this->conn->prepare($query);
-            $stmt->execute();
-            $stats['total_playlists'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $stmt->execute([intval($this->id)]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            // Playlist más popular (con más inscripciones)
-            $query = "SELECT p.title, COUNT(uc.playlist_id) as enrollments 
-                      FROM " . $this->table_name . " p 
-                      LEFT JOIN user_courses uc ON p.id = uc.playlist_id 
-                      GROUP BY p.id, p.title 
-                      ORDER BY enrollments DESC 
-                      LIMIT 1";
-            $stmt = $this->conn->prepare($query);
-            $stmt->execute();
-            $popular = $stmt->fetch(PDO::FETCH_ASSOC);
-            $stats['most_popular'] = $popular ? $popular : ['title' => 'N/A', 'enrollments' => 0];
+            if($row) {
+                $this->title = $row['title'];
+                $this->description = $row['description'];
+                $this->thumbnail = $row['thumbnail'];
+                $this->price = $row['price'];
+                $this->level = $row['level'];
+                $this->created_at = $row['created_at'];
+                $this->updated_at = $row['updated_at'];
+                return true;
+            }
             
-            // Ingresos totales por playlists
-            $query = "SELECT SUM(p.price) as total_revenue 
-                      FROM " . $this->table_name . " p 
-                      INNER JOIN user_courses uc ON p.id = uc.playlist_id 
-                      INNER JOIN orders o ON uc.order_id = o.id 
-                      WHERE o.status = 'completed'";
-            $stmt = $this->conn->prepare($query);
-            $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $stats['total_revenue'] = $result['total_revenue'] ?? 0;
-            
-            return $stats;
+            return false;
         } catch (Exception $e) {
-            error_log("Error obteniendo estadísticas de Playlist: " . $e->getMessage());
-            return [
-                'total_playlists' => 0,
-                'most_popular' => ['title' => 'N/A', 'enrollments' => 0],
-                'total_revenue' => 0
-            ];
+            error_log("Playlist::readOne - Error: " . $e->getMessage());
+            return false;
         }
     }
     
     public function findById($id) {
         try {
-            $query = "SELECT * FROM " . $this->table_name . " WHERE id = ?";
+            $query = "SELECT id, title, description, thumbnail, price, level, created_at, updated_at 
+                      FROM " . $this->table_name . " 
+                      WHERE id = ? LIMIT 1";
+            
             $stmt = $this->conn->prepare($query);
-            $stmt->execute([$id]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->execute([intval($id)]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if($row) {
+                return [
+                    'id' => intval($row['id']),
+                    'name' => $row['title'] ?? $row['name'] ?? 'Curso sin título',
+                    'title' => $row['title'] ?? $row['name'] ?? 'Curso sin título',
+                    'description' => $row['description'] ?? 'Sin descripción',
+                    'cover_image' => $row['thumbnail'] ?? '',
+                    'thumbnail' => $row['thumbnail'] ?? '',
+                    'price' => floatval($row['price'] ?? 0),
+                    'level' => $row['level'] ?? 'A1',
+                    'created_at' => $row['created_at'] ?? date('Y-m-d H:i:s'),
+                    'updated_at' => $row['updated_at'] ?? date('Y-m-d H:i:s')
+                ];
+            }
+            
+            return false;
         } catch (Exception $e) {
-            error_log("Error en findById de Playlist: " . $e->getMessage());
+            error_log("Playlist::findById - Error: " . $e->getMessage());
             return false;
         }
     }
     
-    public function getVideosCount($playlistId) {
+    public function delete() {
         try {
-            $query = "SELECT COUNT(*) as count FROM videos WHERE playlist_id = ?";
+            $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
             $stmt = $this->conn->prepare($query);
-            $stmt->execute([$playlistId]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['count'] ?? 0;
+            $result = $stmt->execute([intval($this->id)]);
+            
+            if ($result) {
+                error_log("Playlist::delete - Éxito eliminando ID: " . $this->id);
+            }
+            
+            return $result;
         } catch (Exception $e) {
-            error_log("Error obteniendo conteo de videos: " . $e->getMessage());
-            return 0;
-        }
-    }
-    
-    public function getEnrollmentsCount($playlistId) {
-        try {
-            $query = "SELECT COUNT(*) as count FROM user_courses WHERE playlist_id = ?";
-            $stmt = $this->conn->prepare($query);
-            $stmt->execute([$playlistId]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['count'] ?? 0;
-        } catch (Exception $e) {
-            error_log("Error obteniendo conteo de inscripciones: " . $e->getMessage());
-            return 0;
+            error_log("Playlist::delete - Error: " . $e->getMessage());
+            return false;
         }
     }
 }
+?>

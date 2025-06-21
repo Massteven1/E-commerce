@@ -5,9 +5,11 @@ namespace Controllers;
 // Asegurarse de que los archivos de las clases se incluyan antes de usarlas
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../models/UserCourse.php'; // <--- AGREGADO: Inclusión de UserCourse
 
 use Config\Database;
 use Models\User;
+use Models\UserCourse; // <--- AGREGADO: Uso del namespace UserCourse
 
 class AuthController {
 
@@ -83,68 +85,87 @@ class AuthController {
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $first_name = $_POST['first_name'] ?? '';
-            $last_name = $_POST['last_name'] ?? '';
-            $email = $_POST['email'] ?? '';
-            $password = $_POST['password'] ?? '';
-            $confirm_password = $_POST['confirm_password'] ?? '';
+            // Obtener datos del formulario
+            $first_name = trim($_POST['first_name'] ?? '');
+            $last_name = trim($_POST['last_name'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $password = trim($_POST['password'] ?? '');
+            $confirm_password = trim($_POST['confirm_password'] ?? '');
 
-            // Sanitizar entradas
-            $first_name = htmlspecialchars(strip_tags(trim($first_name)));
-            $last_name = htmlspecialchars(strip_tags(trim($last_name)));
-            $email = htmlspecialchars(strip_tags(trim($email)));
-            $password = htmlspecialchars(strip_tags(trim($password)));
-            $confirm_password = htmlspecialchars(strip_tags(trim($confirm_password)));
+            error_log("AuthController::register - Datos recibidos: $first_name, $last_name, $email");
 
+            // Validaciones básicas
             if (empty($first_name) || empty($last_name) || empty($email) || empty($password) || empty($confirm_password)) {
+                error_log("AuthController::register - Campos vacíos detectados");
                 self::setFlashMessage('error', 'Todos los campos son requeridos.');
                 header('Location: signup.php');
                 exit();
             }
 
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                error_log("AuthController::register - Email inválido: $email");
                 self::setFlashMessage('error', 'Formato de email inválido.');
                 header('Location: signup.php');
                 exit();
             }
 
             if ($password !== $confirm_password) {
+                error_log("AuthController::register - Contraseñas no coinciden");
                 self::setFlashMessage('error', 'Las contraseñas no coinciden.');
                 header('Location: signup.php');
                 exit();
             }
 
             if (strlen($password) < 6) {
+                error_log("AuthController::register - Contraseña muy corta");
                 self::setFlashMessage('error', 'La contraseña debe tener al menos 6 caracteres.');
                 header('Location: signup.php');
                 exit();
             }
 
-            $userModel = new User($this->db);
-            if ($userModel->emailExists($email)) {
-                self::setFlashMessage('error', 'Este email ya está registrado.');
-                header('Location: signup.php');
-                exit();
-            }
+            try {
+                $userModel = new User($this->db);
+                
+                // Verificar si el email ya existe
+                if ($userModel->emailExists($email)) {
+                    error_log("AuthController::register - Email ya existe: $email");
+                    self::setFlashMessage('error', 'Este email ya está registrado.');
+                    header('Location: signup.php');
+                    exit();
+                }
 
-            $userModel->first_name = $first_name;
-            $userModel->last_name = $last_name;
-            $userModel->email = $email;
-            $userModel->password = $userModel->hashPassword($password); // Hash de la contraseña
-            $userModel->role = 'user'; // Rol por defecto
+                // Configurar datos del usuario
+                $userModel->first_name = $first_name;
+                $userModel->last_name = $last_name;
+                $userModel->email = $email;
+                $userModel->password = $userModel->hashPassword($password);
+                $userModel->role = 'user';
 
-            if ($userModel->create()) {
-                $this->createSession($userModel); // Iniciar sesión automáticamente
-                self::setFlashMessage('success', '¡Registro exitoso! Bienvenido.');
-                header('Location: views/client/home.php'); // Redirigir a la home del cliente
-                exit();
-            } else {
-                self::setFlashMessage('error', 'Error al registrar el usuario. Intenta de nuevo.');
+                error_log("AuthController::register - Intentando crear usuario...");
+                
+                // Intentar crear el usuario
+                if ($userModel->create()) {
+                    error_log("AuthController::register - Usuario creado exitosamente con ID: " . $userModel->id);
+                    
+                    // Crear sesión automáticamente
+                    $this->createSession($userModel);
+                    self::setFlashMessage('success', '¡Registro exitoso! Bienvenido.');
+                    header('Location: views/client/home.php');
+                    exit();
+                } else {
+                    error_log("AuthController::register - Fallo al crear usuario");
+                    self::setFlashMessage('error', 'Error al registrar el usuario. Intenta de nuevo.');
+                    header('Location: signup.php');
+                    exit();
+                }
+                
+            } catch (\Exception $e) {
+                error_log("AuthController::register - Excepción: " . $e->getMessage());
+                self::setFlashMessage('error', 'Error interno del servidor. Intenta de nuevo.');
                 header('Location: signup.php');
                 exit();
             }
         }
-        // Si no es POST, la vista (signup.php) se encarga de mostrar el formulario.
     }
 
     // Crear sesión
@@ -161,6 +182,8 @@ class AuthController {
         $_SESSION['user_last_name'] = $user->last_name;
         $_SESSION['user_role'] = $user->role;
         $_SESSION['login_time'] = time();
+        
+        error_log("AuthController::createSession - Sesión creada para usuario ID: " . $user->id);
     }
 
     // Cerrar sesión
@@ -171,7 +194,7 @@ class AuthController {
 
         $_SESSION = array();
         session_destroy();
-        header('Location: login.php'); // Redirigir a la página de login después de cerrar sesión
+        header('Location: login.php');
         exit();
     }
 

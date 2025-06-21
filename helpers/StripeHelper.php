@@ -7,8 +7,7 @@ namespace Helpers;
  */
 class StripeHelper {
     private $secretKey;
-    private $apiVersion = '2023-10-16';
-    private $apiBase = 'https://api.stripe.com/v1/';
+    private $apiUrl = 'https://api.stripe.com/v1/';
     
     public function __construct($secretKey) {
         $this->secretKey = $secretKey;
@@ -18,7 +17,7 @@ class StripeHelper {
      * Crear un cargo (charge) en Stripe
      */
     public function createCharge($params) {
-        $url = $this->apiBase . 'charges';
+        $url = $this->apiUrl . 'charges';
         
         $data = [
             'amount' => $params['amount'],
@@ -26,17 +25,35 @@ class StripeHelper {
             'source' => $params['source'],
             'description' => $params['description'] ?? '',
             'receipt_email' => $params['receipt_email'] ?? null,
-            'metadata' => $params['metadata'] ?? []
         ];
         
-        return $this->makeRequest('POST', $url, $data);
+        // Agregar metadata si existe
+        if (isset($params['metadata'])) {
+            foreach ($params['metadata'] as $key => $value) {
+                $data["metadata[$key]"] = $value;
+            }
+        }
+        
+        $response = $this->makeRequest('POST', $url, $data);
+        
+        if ($response === false) {
+            throw new \Exception('Error de conexión con Stripe');
+        }
+        
+        $result = json_decode($response, true);
+        
+        if (isset($result['error'])) {
+            throw new \Exception($result['error']['message']);
+        }
+        
+        return $result;
     }
     
     /**
      * Crear un Payment Intent
      */
     public function createPaymentIntent($params) {
-        $url = $this->apiBase . 'payment_intents';
+        $url = $this->apiUrl . 'payment_intents';
         
         $data = [
             'amount' => $params['amount'],
@@ -56,7 +73,7 @@ class StripeHelper {
      * Confirmar un Payment Intent
      */
     public function confirmPaymentIntent($paymentIntentId, $params = []) {
-        $url = $this->apiBase . 'payment_intents/' . $paymentIntentId . '/confirm';
+        $url = $this->apiUrl . 'payment_intents/' . $paymentIntentId . '/confirm';
         return $this->makeRequest('POST', $url, $params);
     }
     
@@ -64,8 +81,48 @@ class StripeHelper {
      * Obtener información de un Payment Intent
      */
     public function retrievePaymentIntent($paymentIntentId) {
-        $url = $this->apiBase . 'payment_intents/' . $paymentIntentId;
+        $url = $this->apiUrl . 'payment_intents/' . $paymentIntentId;
         return $this->makeRequest('GET', $url);
+    }
+    
+    /**
+     * Obtener información de un cargo
+     */
+    public function retrieveCharge($chargeId) {
+        $url = $this->apiUrl . 'charges/' . $chargeId;
+        $response = $this->makeRequest('GET', $url);
+        
+        if ($response === false) {
+            throw new \Exception('Error de conexión con Stripe');
+        }
+        
+        return json_decode($response, true);
+    }
+    
+    /**
+     * Crear un reembolso
+     */
+    public function createRefund($chargeId, $amount = null) {
+        $url = $this->apiUrl . 'refunds';
+        
+        $data = ['charge' => $chargeId];
+        if ($amount !== null) {
+            $data['amount'] = $amount;
+        }
+        
+        $response = $this->makeRequest('POST', $url, $data);
+        
+        if ($response === false) {
+            throw new \Exception('Error de conexión con Stripe');
+        }
+        
+        $result = json_decode($response, true);
+        
+        if (isset($result['error'])) {
+            throw new \Exception($result['error']['message']);
+        }
+        
+        return $result;
     }
     
     /**
@@ -74,53 +131,38 @@ class StripeHelper {
     private function makeRequest($method, $url, $data = []) {
         $ch = curl_init();
         
-        // Configuración básica de cURL
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_USERAGENT => 'ElProfesorHernan/1.0 (PHP)',
             CURLOPT_HTTPHEADER => [
                 'Authorization: Bearer ' . $this->secretKey,
-                'Content-Type: application/x-www-form-urlencoded',
-                'Stripe-Version: ' . $this->apiVersion
-            ]
+                'Content-Type: application/x-www-form-urlencoded'
+            ],
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_SSL_VERIFYPEER => true,
         ]);
         
-        // Configurar método HTTP
         if ($method === 'POST') {
             curl_setopt($ch, CURLOPT_POST, true);
-            if (!empty($data)) {
-                curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-            }
-        } elseif ($method === 'GET' && !empty($data)) {
-            curl_setopt($ch, CURLOPT_URL, $url . '?' . http_build_query($data));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
         }
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
+        
+        if (curl_errno($ch)) {
+            error_log('Curl error: ' . curl_error($ch));
+            curl_close($ch);
+            return false;
+        }
         
         curl_close($ch);
         
-        if ($error) {
-            throw new \Exception('cURL Error: ' . $error);
-        }
-        
-        $decodedResponse = json_decode($response, true);
-        
         if ($httpCode >= 400) {
-            $errorMessage = 'Stripe API Error';
-            if (isset($decodedResponse['error']['message'])) {
-                $errorMessage = $decodedResponse['error']['message'];
-            }
-            throw new \Exception($errorMessage, $httpCode);
+            error_log("Stripe API error: HTTP $httpCode - $response");
         }
         
-        return $decodedResponse;
+        return $response;
     }
     
     /**

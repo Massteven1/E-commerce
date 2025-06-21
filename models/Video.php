@@ -5,23 +5,38 @@ class Video {
     private $conn;
     private $table = "videos";
 
+    public $id;
+    public $title;
+    public $description;
+    public $file_path;
+    public $thumbnail_image;
+    public $playlist_id;
+    public $created_at;
+    public $updated_at;
+
     public function __construct($db) {
         $this->conn = $db;
         $this->createTableIfNotExists();
     }
 
-    public function create($data) {
+    public function create() {
         try {
             $query = "INSERT INTO {$this->table} (title, description, file_path, thumbnail_image, playlist_id, created_at) 
-                      VALUES (?, ?, ?, ?, ?, NOW())";
+                  VALUES (?, ?, ?, ?, ?, NOW())";
             $stmt = $this->conn->prepare($query);
-            return $stmt->execute([
-                $data['title'],
-                $data['description'],
-                $data['file_path'],
-                $data['thumbnail_image'],
-                $data['playlist_id']
+            $result = $stmt->execute([
+                $this->title,
+                $this->description,
+                $this->file_path,
+                $this->thumbnail_image,
+                $this->playlist_id
             ]);
+        
+            if ($result) {
+                $this->id = $this->conn->lastInsertId();
+            }
+        
+            return $result;
         } catch (\PDOException $e) {
             error_log("Error en Video::create: " . $e->getMessage());
             return false;
@@ -60,7 +75,7 @@ class Video {
 
     public function readAll() {
         try {
-            $query = "SELECT v.*, p.name as playlist_name 
+            $query = "SELECT v.*, p.title as playlist_name 
                       FROM {$this->table} v 
                       LEFT JOIN playlists p ON v.playlist_id = p.id 
                       ORDER BY v.created_at DESC";
@@ -142,7 +157,7 @@ class Video {
     // Buscar videos por título
     public function searchByTitle($searchTerm) {
         try {
-            $query = "SELECT v.*, p.name as playlist_name 
+            $query = "SELECT v.*, p.title as playlist_name 
                       FROM {$this->table} v 
                       LEFT JOIN playlists p ON v.playlist_id = p.id 
                       WHERE v.title LIKE ? OR v.description LIKE ?

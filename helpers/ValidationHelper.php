@@ -1,10 +1,5 @@
 <?php
-namespace Helpers; // Añadir namespace
-
-// Asegurarse de que SecurityHelper se incluya para sus funciones estáticas
-require_once __DIR__ . '/SecurityHelper.php';
-
-use Helpers\SecurityHelper;
+namespace Helpers;
 
 class ValidationHelper {
     
@@ -14,76 +9,152 @@ class ValidationHelper {
     public static function validateCheckoutData($data) {
         $errors = [];
         
-        // Campos requeridos
-        $requiredFields = [
-            'first_name' => 'Nombre',
-            'last_name' => 'Apellido', 
-            'email' => 'Email',
-            'phone' => 'Teléfono',
-            'address' => 'Dirección',
-            'city' => 'Ciudad',
-            'state' => 'Estado/Provincia',
-            'zip_code' => 'Código Postal',
-            'country' => 'País'
-        ];
-        
-        foreach ($requiredFields as $field => $label) {
-            if (empty($data[$field]) || trim($data[$field]) === '') {
-                $errors[] = "El campo {$label} es requerido.";
-            }
+        // Validar token de Stripe
+        if (empty($data['stripeToken'])) {
+            $errors[] = 'Token de pago requerido';
         }
         
-        // Validaciones específicas
-        if (!empty($data['email']) && !SecurityHelper::validateEmail($data['email'])) {
-            $errors[] = "El formato del email no es válido.";
-        }
-        
-        if (!empty($data['phone']) && !SecurityHelper::validatePhone($data['phone'])) {
-            $errors[] = "El formato del teléfono no es válido.";
-        }
-        
-        // Validar longitudes
-        if (!empty($data['first_name']) && strlen($data['first_name']) > 100) {
-            $errors[] = "El nombre no puede exceder 100 caracteres.";
-        }
-        
-        if (!empty($data['last_name']) && strlen($data['last_name']) > 100) {
-            $errors[] = "El apellido no puede exceder 100 caracteres.";
-        }
-        
-        if (!empty($data['address']) && strlen($data['address']) > 255) {
-            $errors[] = "La dirección no puede exceder 255 caracteres.";
+        // Validar email si está presente
+        if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email inválido';
         }
         
         return $errors;
     }
     
     /**
-     * Validar estructura del carrito
+     * Validar datos de usuario
      */
-    public static function validateCartStructure($cart) {
-        if (!is_array($cart) || empty($cart)) {
-            return false;
+    public static function validateUserData($data) {
+        $errors = [];
+        
+        if (empty($data['first_name'])) {
+            $errors[] = 'Nombre es requerido';
         }
         
-        foreach ($cart as $item) {
-            if (!is_array($item)) {
-                continue; // Permitir IDs simples para compatibilidad
-            }
-            
-            if (!isset($item['id']) || !is_numeric($item['id'])) {
-                return false;
-            }
+        if (empty($data['last_name'])) {
+            $errors[] = 'Apellido es requerido';
         }
         
-        return true;
+        if (empty($data['email'])) {
+            $errors[] = 'Email es requerido';
+        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email inválido';
+        }
+        
+        if (empty($data['password'])) {
+            $errors[] = 'Contraseña es requerida';
+        } elseif (strlen($data['password']) < 6) {
+            $errors[] = 'La contraseña debe tener al menos 6 caracteres';
+        }
+        
+        return $errors;
     }
     
     /**
-     * Validar monto de pago
+     * Validar datos de playlist
      */
-    public static function validatePaymentAmount($amount) {
-        return is_numeric($amount) && $amount > 0 && $amount <= 10000; // Máximo $10,000
+    public static function validatePlaylistData($data) {
+        $errors = [];
+        
+        if (empty($data['name'])) {
+            $errors[] = 'Nombre del curso es requerido';
+        }
+        
+        if (empty($data['description'])) {
+            $errors[] = 'Descripción es requerida';
+        }
+        
+        if (empty($data['level'])) {
+            $errors[] = 'Nivel es requerido';
+        }
+        
+        if (!isset($data['price']) || $data['price'] < 0) {
+            $errors[] = 'Precio debe ser mayor o igual a 0';
+        }
+        
+        return $errors;
+    }
+    
+    /**
+     * Validar datos de video
+     */
+    public static function validateVideoData($data) {
+        $errors = [];
+        
+        if (empty($data['title'])) {
+            $errors[] = 'Título del video es requerido';
+        }
+        
+        if (empty($data['playlist_id'])) {
+            $errors[] = 'Playlist es requerida';
+        }
+        
+        return $errors;
+    }
+    
+    /**
+     * Validar archivo subido
+     */
+    public static function validateUploadedFile($file, $allowedTypes, $maxSize) {
+        $errors = [];
+        
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $errors[] = 'Error al subir el archivo';
+            return $errors;
+        }
+        
+        // Validar tipo
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($extension, $allowedTypes)) {
+            $errors[] = 'Tipo de archivo no permitido. Permitidos: ' . implode(', ', $allowedTypes);
+        }
+        
+        // Validar tamaño
+        if ($file['size'] > $maxSize) {
+            $errors[] = 'El archivo es demasiado grande. Máximo: ' . self::formatBytes($maxSize);
+        }
+        
+        return $errors;
+    }
+    
+    /**
+     * Formatear bytes a formato legible
+     */
+    public static function formatBytes($bytes, $precision = 2) {
+        $units = array('B', 'KB', 'MB', 'GB', 'TB');
+        
+        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
+        }
+        
+        return round($bytes, $precision) . ' ' . $units[$i];
+    }
+    
+    /**
+     * Validar número de teléfono
+     */
+    public static function validatePhone($phone) {
+        // Remover espacios y caracteres especiales
+        $phone = preg_replace('/[^0-9+]/', '', $phone);
+        
+        // Validar longitud básica
+        return strlen($phone) >= 10 && strlen($phone) <= 15;
+    }
+    
+    /**
+     * Validar URL
+     */
+    public static function validateUrl($url) {
+        return filter_var($url, FILTER_VALIDATE_URL) !== false;
+    }
+    
+    /**
+     * Validar fecha
+     */
+    public static function validateDate($date, $format = 'Y-m-d') {
+        $d = \DateTime::createFromFormat($format, $date);
+        return $d && $d->format($format) === $date;
     }
 }
 ?>

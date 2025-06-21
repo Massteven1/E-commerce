@@ -63,12 +63,16 @@ class VideoController {
         }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['video'])) {
-            // Mostrar formulario de subida
-            $playlists = $this->playlistModel->readAll();
-            $csrfToken = SecurityHelper::generateCSRFToken();
-            require_once __DIR__ . '/../views/admin/upload_video.php';
-            return;
-        }
+    // Mostrar formulario de subida
+    $playlists = $this->playlistModel->readAll();
+    $csrfToken = SecurityHelper::generateCSRFToken();
+    
+    // Si se especifica un playlist_id en la URL, preseleccionarlo
+    $selected_playlist_id = $_GET['playlist_id'] ?? null;
+    
+    require_once __DIR__ . '/../views/admin/upload_video.php';
+    return;
+}
 
         // Validar token CSRF
         $csrfToken = $_POST['csrf_token'] ?? '';

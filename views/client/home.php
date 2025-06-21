@@ -29,7 +29,13 @@ $userCourseModel = new UserCourse($db);
 
 // Obtener usuario actual
 $currentUser = AuthController::getCurrentUser();
-$userId = $currentUser['id'];
+$userId = $currentUser['id'] ?? 0;
+
+// Verificar que el usuario existe y tiene datos válidos
+if (!$currentUser || !isset($currentUser['id'])) {
+    AuthController::logout(); // Cerrar sesión si los datos están corruptos
+    exit();
+}
 
 // Obtener todos los cursos
 $allPlaylists = $playlistModel->readAll();
@@ -71,6 +77,23 @@ $cart_count = $cartController->getCartCount();
 
 // Obtener mensaje flash si existe
 $flashMessage = AuthController::getFlashMessage();
+
+// Función helper para obtener el nombre del usuario de forma segura
+function getUserDisplayName($user) {
+    if (isset($user['name']) && !empty($user['name'])) {
+        return $user['name'];
+    } elseif (isset($user['first_name']) && isset($user['last_name'])) {
+        return trim($user['first_name'] . ' ' . $user['last_name']);
+    } elseif (isset($user['first_name'])) {
+        return $user['first_name'];
+    } elseif (isset($user['email'])) {
+        return explode('@', $user['email'])[0]; // Usar la parte antes del @ del email
+    } else {
+        return 'Usuario';
+    }
+}
+
+$userDisplayName = getUserDisplayName($currentUser);
 ?>
 
 <!DOCTYPE html>
@@ -88,7 +111,7 @@ $flashMessage = AuthController::getFlashMessage();
     <header class="header">
         <div class="container">
             <div class="logo">
-                <img src="../../img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
+                <img src="../../public/img/logo-profe-hernan.png" alt="El Profesor Hernán" style="height: 40px;">
                 <span>El Profesor Hernán</span>
             </div>
             
@@ -107,8 +130,8 @@ $flashMessage = AuthController::getFlashMessage();
             </nav>
             
             <div class="auth-links">
-                <span>Hola, <?php echo htmlspecialchars($currentUser['name']); ?></span>
-                <?php if ($currentUser['role'] === 'admin'): ?>
+                <span>Hola, <?php echo htmlspecialchars($userDisplayName); ?></span>
+                <?php if (($currentUser['role'] ?? '') === 'admin'): ?>
                     <a href="../admin/index.php?controller=admin&action=dashboard" class="btn-admin">Panel Admin</a>
                 <?php endif; ?>
                 <a href="purchase-history.php" class="btn-history">Mis Cursos</a>
@@ -145,7 +168,7 @@ $flashMessage = AuthController::getFlashMessage();
                 </div>
                 <div class="banner-image">
                     <div class="image-container">
-                        <img src="../../img/profe-hernan-banner.png" alt="Profesor Hernán enseñando inglés">
+                        <img src="../../public/img/hero-image.png" alt="Profesor Hernán enseñando inglés">
                     </div>
                 </div>
             </div>
@@ -161,8 +184,8 @@ $flashMessage = AuthController::getFlashMessage();
                 <?php foreach ($best_sellers as $playlist): ?>
                     <div class="product-card">
                         <div class="product-tumb">
-                            <?php if (!empty($playlist['cover_image'])): ?>
-                                <img src="../../<?php echo htmlspecialchars($playlist['cover_image']); ?>" alt="<?php echo htmlspecialchars($playlist['name']); ?>">
+                            <?php if (!empty($playlist['thumbnail'])): ?>
+                                <img src="../../<?php echo htmlspecialchars($playlist['thumbnail']); ?>" alt="<?php echo htmlspecialchars($playlist['title'] ?? $playlist['name'] ?? 'Curso'); ?>">
                             <?php else: ?>
                                 <img src="https://i.imgur.com/xdbHo4E.png" alt="Imagen por defecto">
                             <?php endif; ?>
@@ -181,14 +204,14 @@ $flashMessage = AuthController::getFlashMessage();
                             <span class="product-catagory">
                                 <?php echo htmlspecialchars($playlist['level'] ?? 'General'); ?>
                             </span>
-                            <h4><a href="course-detail.php?id=<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['name']); ?></a></h4>
+                            <h4><a href="course-detail.php?id=<?php echo htmlspecialchars($playlist['id']); ?>"><?php echo htmlspecialchars($playlist['title'] ?? $playlist['name'] ?? 'Curso sin título'); ?></a></h4>
                             <p><?php echo htmlspecialchars($playlist['description'] ?: 'Curso completo de inglés para todos los niveles.'); ?></p>
                             <div class="product-bottom-details">
-                                <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?></div>
+                                <div class="product-price">$<?php echo htmlspecialchars(number_format($playlist['price'] ?? 0, 2)); ?></div>
                                 <?php if ($hasAccess): ?>
                                     <a href="course-detail.php?id=<?php echo htmlspecialchars($playlist['id']); ?>" class="add-to-cart-btn">Acceder</a>
                                 <?php else: ?>
-                                    <a href="../../controllers/CartController.php?action=add&id=<?php echo htmlspecialchars($playlist['id']); ?>" class="add-to-cart-btn">Añadir al Carrito</a>
+                                    <button onclick="addToCart(<?php echo $playlist['id']; ?>)" class="add-to-cart-btn">Añadir al Carrito</button>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -221,7 +244,7 @@ $flashMessage = AuthController::getFlashMessage();
                     <?php if (!empty($playlists)): ?>
                         <?php $playlist = $playlists[0]; // Tomar el primer curso de cada nivel para la tarjeta de nivel ?>
                         <div class="course-card">
-                            <div class="level-badge neon-glow" style="background-color: <?php echo $level_colors[$level]; ?>; color: white;">
+                            <div class="level-badge neon-glow" style="background-color: <?php echo $level_colors[$level] ?? 'var(--secondary-color)'; ?>; color: white;">
                                 <?php echo htmlspecialchars($level); ?>
                             </div>
                             <div class="course-icon"><i class="fas fa-graduation-cap"></i></div>
@@ -242,10 +265,10 @@ $flashMessage = AuthController::getFlashMessage();
                                 <li>Ejercicios interactivos</li>
                             </ul>
                             <p class="course-price">
-                                $<?php echo htmlspecialchars(number_format($playlist['price'], 2)); ?>
-                                <?php if (isset($playlist['original_price']) && $playlist['original_price'] && $playlist['original_price'] > $playlist['price']): ?>
+                                $<?php echo htmlspecialchars(number_format($playlist['price'] ?? 0, 2)); ?>
+                                <?php if (isset($playlist['original_price']) && $playlist['original_price'] && $playlist['original_price'] > ($playlist['price'] ?? 0)): ?>
                                     <span class="original-price">$<?php echo htmlspecialchars(number_format($playlist['original_price'], 2)); ?></span>
-                                    <span class="discount">-<?php echo round((($playlist['original_price'] - $playlist['price']) / $playlist['original_price']) * 100); ?>%</span>
+                                    <span class="discount">-<?php echo round((($playlist['original_price'] - ($playlist['price'] ?? 0)) / $playlist['original_price']) * 100); ?>%</span>
                                 <?php endif; ?>
                             </p>
                             <a href="all-courses.php#level-<?php echo strtolower($level); ?>" class="btn-primary">Ver Cursos</a>
@@ -304,7 +327,7 @@ $flashMessage = AuthController::getFlashMessage();
                     </div>
                 </div>
                 <div class="about-image">
-                    <img src="../../img/profe-hernan-about.png" alt="Profesor Hernán">
+                    <img src="../../public/img/profesor-hernan.jpg" alt="Profesor Hernán">
                 </div>
             </div>
         </div>
@@ -389,5 +412,141 @@ $flashMessage = AuthController::getFlashMessage();
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="../../auth/firebase-config.js"></script>
     <script src="../../auth/auth.js"></script>
+    <script>
+function addToCart(courseId) {
+    // Obtener el botón que se clickeó
+    const button = event.target;
+    const originalHTML = button.innerHTML;
+    
+    // Mostrar estado de carga
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Agregando...';
+    button.disabled = true;
+
+    // Crear FormData para enviar la solicitud
+    const formData = new FormData();
+    formData.append('action', 'add');
+    formData.append('id', courseId);
+
+    fetch('../../controllers/CartController.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+    })
+    .then(text => {
+        console.log('Raw response:', text);
+        
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('Error parsing JSON:', e);
+            throw new Error('Respuesta inválida del servidor');
+        }
+        
+        if (data.status === 'success') {
+            showNotification(data.message || 'Curso agregado al carrito exitosamente', 'success');
+            updateCartCount();
+            
+            // Cambiar el botón a "Agregado"
+            button.innerHTML = '<i class="fas fa-check"></i> Agregado';
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            }, 2000);
+        } else {
+            showNotification(data.message || 'Error al agregar al carrito', 'error');
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error al agregar al carrito. Inténtalo de nuevo.', 'error');
+        
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+    });
+}
+
+function showNotification(message, type) {
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(n => n.remove());
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        ${type === 'success' ? 'background: #56e2c6;' : 'background: #ff5a5a;'}
+    `;
+    notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 4000);
+}
+
+function updateCartCount() {
+    fetch('../../controllers/CartController.php?action=count')
+        .then(response => response.json())
+        .then(data => {
+            const cartCounts = document.querySelectorAll('.cart-count');
+            cartCounts.forEach(cartCount => {
+                if (data.count !== undefined) {
+                    cartCount.textContent = data.count;
+                    cartCount.style.transform = 'scale(1.3)';
+                    setTimeout(() => {
+                        cartCount.style.transform = 'scale(1)';
+                    }, 200);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error updating cart count:', error);
+        });
+}
+
+// Actualizar contador del carrito al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    updateCartCount();
+});
+</script>
+<style>
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.add-to-cart-btn {
+    transition: all 0.3s ease;
+}
+
+.add-to-cart-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+</style>
 </body>
 </html>

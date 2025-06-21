@@ -250,46 +250,131 @@ class PaymentController {
             ]);
 
             if ($charge && isset($charge['status']) && $charge['status'] === 'succeeded') {
-                // El pago fue exitoso
                 $transactionId = $charge['id'];
                 $orderStatus = 'completed';
 
-                // 1. Registrar el pedido en la base de datos
-                $this->orderModel->user_id = $userId;
-                $this->orderModel->transaction_id = $transactionId;
-                $this->orderModel->amount = $finalAmount;
-                $this->orderModel->currency = $currency;
-                $this->orderModel->status = $orderStatus;
+                error_log("=== INICIO PROCESO REGISTRO PEDIDO ===");
+                error_log("Transaction ID: $transactionId");
+                error_log("User ID: $userId");
+                error_log("Amount: $finalAmount");
+                error_log("Cursos a comprar: " . json_encode($purchasedPlaylistIds));
 
-                if ($this->orderModel->create()) {
+                try {
+                    if (!$this->db) {
+                        throw new \Exception("No hay conexión a la base de datos");
+                    }
+
+                    $this->db->beginTransaction();
+                    error_log("Transacción de BD iniciada");
+
+                    $existingOrder = $this->orderModel->findByTransactionId($transactionId);
+                    if ($existingOrder) {
+                        error_log("Ya existe un pedido con transaction_id: $transactionId. No se creará duplicado.");
+                        $this->db->rollback();
+                        
+                        // Limpiar carrito y redirigir a confirmación
+                        unset($_SESSION['cart']);
+                        unset($_SESSION['promo_code_applied']);
+                        unset($_SESSION['promo_discount_rate']);
+                        unset($_SESSION['promo_message']);
+                        unset($_SESSION['csrf_token']);
+                        
+                        AuthController::setFlashMessage('info', '¡Tu pago ya fue procesado anteriormente! Revisa tu historial de compras.'); // Cambiado a 'info'
+                        header('Location: ../views/client/purchase-history.php');
+                        exit();
+                    }
+
+                    $this->orderModel->user_id = $userId;
+                    $this->orderModel->transaction_id = $transactionId;
+                    $this->orderModel->amount = $finalAmount;
+                    $this->orderModel->currency = $currency;
+                    $this->orderModel->status = $orderStatus;
+                    $this->orderModel->payment_method = 'stripe'; // Asegurarse de que esta columna exista
+
+                    error_log("Intentando crear pedido...");
+                    if (!$this->orderModel->create()) {
+                        throw new \Exception("Error al crear el pedido en la base de datos - método create() retornó false");
+                    }
+
                     $orderId = $this->orderModel->id;
+                    if (!$orderId || $orderId <= 0) {
+                        throw new \Exception("ID de pedido inválido después de crear: $orderId");
+                    }
 
-                    // 2. Otorgar acceso a los cursos comprados
+                    error_log("Pedido creado exitosamente con ID: $orderId");
+
                     $accessGranted = true;
+                    $accessErrors = [];
+                    
                     foreach ($purchasedPlaylistIds as $playlistId) {
+                        error_log("Otorgando acceso al curso $playlistId para usuario $userId");
+                        
+                        $course = $this->playlistModel->findById($playlistId);
+                        if (!$course) {
+                            $accessErrors[] = "Curso $playlistId no encontrado";
+                            error_log("Error: Curso $playlistId no encontrado");
+                            continue;
+                        }
+                        
+                        if ($this->userCourseModel->hasAccess($userId, $playlistId)) {
+                            error_log("Usuario $userId ya tiene acceso al curso $playlistId");
+                            continue;
+                        }
+                        
                         if (!$this->userCourseModel->grantAccess($userId, $playlistId, $orderId)) {
                             $accessGranted = false;
+                            $accessErrors[] = "Error al otorgar acceso al curso $playlistId";
                             error_log("Error al otorgar acceso al curso $playlistId para el usuario $userId");
+                        } else {
+                            error_log("Acceso otorgado exitosamente al curso $playlistId para el usuario $userId");
                         }
                     }
 
-                    if (!$accessGranted) {
-                        error_log("No se pudo otorgar acceso a todos los cursos para el pedido $orderId");
+                    if (!$accessGranted && !empty($accessErrors)) {
+                        error_log("Errores de acceso: " . implode(", ", $accessErrors));
                     }
 
-                    // 3. Limpiar el carrito de la sesión
+                    $this->db->commit();
+                    error_log("Transacción de BD confirmada exitosamente");
+
+                    error_log("Limpiando carrito de la sesión...");
                     unset($_SESSION['cart']);
                     unset($_SESSION['promo_code_applied']);
                     unset($_SESSION['promo_discount_rate']);
                     unset($_SESSION['promo_message']);
                     unset($_SESSION['csrf_token']);
+                    error_log("Carrito limpiado exitosamente");
+
+                    error_log("=== PROCESO COMPLETADO EXITOSAMENTE ===");
 
                     AuthController::setFlashMessage('success', '¡Pago exitoso! Tu compra ha sido confirmada y ya tienes acceso a tus cursos.');
                     header('Location: ../views/client/order-confirmation.php?order_id=' . $orderId);
                     exit();
 
-                } else {
-                    error_log("Error al guardar pedido en BD. Transaction ID: $transactionId, User ID: $userId");
+                } catch (\Exception $e) {
+                    if ($this->db->inTransaction()) {
+                        $this->db->rollback();
+                        error_log("Transacción de BD revertida");
+                    }
+                    
+                    error_log("=== ERROR EN REGISTRO DE PEDIDO ===");
+                    error_log("Error completo: " . $e->getMessage());
+                    error_log("Stack trace: " . $e->getTraceAsString());
+                    error_log("Transaction ID: $transactionId");
+                    error_log("User ID: $userId");
+                    error_log("Amount: $finalAmount");
+                    
+                    try {
+                        error_log("Intentando crear registro de emergencia...");
+                        $emergencyQuery = "INSERT INTO orders (user_id, transaction_id, amount, currency, status, payment_method, created_at) 
+                                          VALUES (?, ?, ?, ?, 'pending_review', 'stripe', NOW())";
+                        $emergencyStmt = $this->db->prepare($emergencyQuery);
+                        $emergencyStmt->execute([$userId, $transactionId, $finalAmount, $currency]);
+                        error_log("Registro de emergencia creado");
+                    } catch (\Exception $emergencyError) {
+                        error_log("Error creando registro de emergencia: " . $emergencyError->getMessage());
+                    }
+                    
                     AuthController::setFlashMessage('error', 'Pago exitoso, pero hubo un error al registrar tu pedido. Por favor, contacta a soporte con el ID de transacción: ' . $transactionId);
                     header('Location: ../views/client/cart.php');
                     exit();
@@ -304,12 +389,11 @@ class PaymentController {
         } catch (\Exception $e) {
             error_log("Error general en processPayment: " . $e->getMessage());
             
-            // Determinar el tipo de error para mostrar mensaje apropiado
             $errorMessage = 'Ocurrió un error inesperado al procesar tu pago. Intenta de nuevo.';
             
             if (strpos($e->getMessage(), 'card') !== false || strpos($e->getMessage(), 'declined') !== false) {
                 $errorMessage = 'Tu tarjeta fue rechazada. Por favor, verifica los datos o usa otra tarjeta.';
-            } elseif (strpos($e->getMessage(), 'network') !== false || strpos($e->getMessage(), 'connection') !== false) {
+            } elseif (strpos($e->getMessage(), 'network') !== false || strpos(strtolower($e->getMessage()), 'connection') !== false) { // Added strtolower
                 $errorMessage = 'Error de conexión con el sistema de pagos. Intenta de nuevo.';
             }
             
