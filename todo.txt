@@ -1,4 +1,5 @@
 1. Agregar el uso de Paypal.
-2. Hacer que el curso este disponible al usuario despu[es de realizar la compra.]
+2. Hacer que el curso este disponible al usuario despu[es de realizar la compra.
+3. Hacer que las portadas de los cursos aparezcan en http://localhost:3000/views/client/all-courses.php
 
 NOTA: RECORDAR HACER PRIVADO EL ROPOSITORIO AL ACABAR. (Las claves de testo están expuestas)
